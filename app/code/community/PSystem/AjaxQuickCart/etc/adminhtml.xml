@@ -4,25 +4,28 @@
  * @category   PSystem
  * @package    PSystem_AjaxQuickCart
  * @author     Pascal System <info@pascalsystem.pl>
- * @version    1.0.2
+ * @version    1.0.3
  */
 -->
 <config>
-	<acl>
-		<resources>
-			<admin>
-				<children>
-					<system>
-						<children>
-							<config>
-								<children>
-									<psajaxquickcart />
-								</children>
-							</config>
-						</children>
-					</system>
-				</children>
-			</admin>
-		</resources>
-	</acl>
+    <acl>
+        <resources>
+            <admin>
+                <children>
+                    <system>
+                        <children>
+                            <config>
+                                <children>
+                                    <psajaxquickcart translate="title" module="ajaxquickcart">
+                                        <title>Pascal System Ajax Quick Cart</title>
+                                        <sort_order>70</sort_order>
+                                    </psajaxquickcart>
+                                </children>
+                            </config>
+                        </children>
+                    </system>
+                </children>
+            </admin>
+        </resources>
+    </acl>
 </config>
