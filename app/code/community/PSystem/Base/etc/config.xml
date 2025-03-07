@@ -4,13 +4,13 @@
  * @category   PSystem
  * @package    PSystem_Base
  * @author     Pascal System <info@pascalsystem.pl>
- * @version    1.1.2
+ * @version    1.1.3
  */
 -->
 <config>
 	<modules>
 		<PSystem_Base>
-			<version>1.1.2</version>
+			<version>1.1.3</version>
 		</PSystem_Base>
 	</modules>
 	<global>
