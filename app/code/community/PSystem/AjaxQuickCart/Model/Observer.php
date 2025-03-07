@@ -3,7 +3,7 @@
  * @category   PSystem
  * @package    PSystem_AjaxQuickCart
  * @author     Pascal System <info@pascalsystem.pl>
- * @version    1.0.2
+ * @version    1.0.3
  */
 
 /**
@@ -12,7 +12,7 @@
  * @category   PSystem
  * @package    PSystem_AjaxQuickCart
  * @author     Pascal System <info@pascalsystem.pl>
- * @version    1.0.2
+ * @version    1.0.3
  */
 class PSystem_AjaxQuickCart_Model_Observer extends Mage_Core_Block_Abstract {
 /**
@@ -39,12 +39,17 @@ class PSystem_AjaxQuickCart_Model_Observer extends Mage_Core_Block_Abstract {
 		$isError = (count($msg->getItems('success'))==0)?true:false;
 		
 		if ($isError) {
-			$productId = intval($action->getRequest()->getParam('product'));
+			$productId = (int)$action->getRequest()->getParam('product');
 			/* @var $product Mage_Catalog_Model_Product */
 			$product = Mage::getModel('catalog/product')->load($productId);
 			if ($productId && ($product->getId() == $productId)) {
-				Mage::register('product', $product);
-				Mage::register('current_product', $product);
+				// Check if these registries are already set to avoid "already exists" errors
+				if (!Mage::registry('product')) {
+					Mage::register('product', $product);
+				}
+				if (!Mage::registry('current_product')) {
+					Mage::register('current_product', $product);
+				}
 			} else {
 				$product = false;
 			}
@@ -94,7 +99,7 @@ class PSystem_AjaxQuickCart_Model_Observer extends Mage_Core_Block_Abstract {
 			return;
 		}
 		
-		if (!$productId = intval($request->getParam('id')))
+		if (!$productId = (int)$request->getParam('id'))
 			return;
 		/* @var $product Mage_Catalog_Model_Product */
 		$product = Mage::getModel('catalog/product')->load($productId);
@@ -105,12 +110,8 @@ class PSystem_AjaxQuickCart_Model_Observer extends Mage_Core_Block_Abstract {
 		
 		/* @var $update Mage_Core_Model_Layout_Update */
 		$update = $action->getLayout()->getUpdate();
-		/*$update->addUpdate('<reference name="product.info">
-			<action method="setTemplate"><template>ajaxquickcart/quickcart/product.phtml</template></action>
-		</reference>');*/
 		$update->addHandle('ajaxquickcart_product_view');
 		$update->addHandle('PRODUCT_TYPE_ajaxquickcart_'.$productType);
-		//todo: add addtocart ajax on layer
 	}
 	
 /**
