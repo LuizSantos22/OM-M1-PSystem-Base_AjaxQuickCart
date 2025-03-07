@@ -3,16 +3,15 @@
  * @category   PSystem
  * @package    PSystem_Base
  * @author     Pascal System <info@pascalsystem.pl>
- * @version    1.1.2
+ * @version    1.1.3
  */
-
 /**
  * Pascal Base utility observer
  * 
  * @category   PSystem
  * @package    PSystem_Base
  * @author     Pascal System <info@pascalsystem.pl>
- * @version    1.1.2
+ * @version    1.1.3
  */
 class PSystem_Base_Model_Observer {
 /**
@@ -29,20 +28,23 @@ class PSystem_Base_Model_Observer {
 		
 		$param = array();
 		
-		if (function_exists('apache_request_headers'))
+		if (function_exists('apache_request_headers')) {
 			$headers = apache_request_headers();
-		elseif (function_exists('getallheader'))
-			$headers = getallheader();
-		else
+		} elseif (function_exists('getallheaders')) {
+			$headers = getallheaders();
+		} else {
 			$headers = $_SERVER;
+		}
+		
 		foreach ($headers as $headerName => $headerValue) {
 			$headerName = strtolower($headerName);
-			if (!preg_match('/pascalsystem(.*)/',$headerName,$regs))
+			if (!preg_match('/pascalsystem(.*)/',$headerName,$regs)) {
 				continue;
+			}
 			$param[str_replace('_','.',$regs[1])] = $headerValue;
 		}
 		
-		//orginal magento ajax request
+		//original magento ajax request
 		if (!count($param)) {
 			return;
 		}
@@ -53,7 +55,7 @@ class PSystem_Base_Model_Observer {
 			$temp = $layout->getBlock($blockName);
 			$blocks[$blockName] = array(
 				'selector'	=> $selector,
-				'html'		=> ($temp)?$temp->toHtml():''
+				'html'		=> ($temp) ? $temp->toHtml() : ''
 			);
 		}
 		echo json_encode($blocks);
