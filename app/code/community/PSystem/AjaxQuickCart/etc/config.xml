@@ -4,13 +4,13 @@
  * @category   PSystem
  * @package    PSystem_AjaxQuickCart
  * @author     Pascal System <info@pascalsystem.pl>
- * @version    1.0.2
+ * @version    1.0.3
  */
 -->
 <config>
 	<modules>
 		<PSystem_AjaxQuickCart>
-			<version>1.0.2</version>
+			<version>1.0.3</version>
 		</PSystem_AjaxQuickCart>
 	</modules>
 	<global>
@@ -19,6 +19,16 @@
 				<class>PSystem_AjaxQuickCart_Block</class>
 			</ajaxquickcart>
 		</blocks>
+		<models>
+			<ajaxquickcart>
+				<class>PSystem_AjaxQuickCart_Model</class>
+			</ajaxquickcart>
+		</models>
+		<helpers>
+			<ajaxquickcart>
+				<class>PSystem_AjaxQuickCart_Helper</class>
+			</ajaxquickcart>
+		</helpers>
 		<events>
 			<controller_action_postdispatch_checkout_cart_add>
 				<observers>
