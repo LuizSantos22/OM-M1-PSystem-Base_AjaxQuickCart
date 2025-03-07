@@ -1,0 +1,110 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300" width="400" height="300">
+  <defs>
+    <!-- Definições para animações -->
+    <clipPath id="circleClip">
+      <circle cx="200" cy="150" r="80"></circle>
+    </clipPath>
+    
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="3"></feGaussianBlur>
+      <feOffset dx="2" dy="2"></feOffset>
+      <feComponentTransfer>
+        <feFuncA type="linear" slope="0.3"></feFuncA>
+      </feComponentTransfer>
+      <feMerge>
+        <feMergeNode></feMergeNode>
+        <feMergeNode in="SourceGraphic"></feMergeNode>
+      </feMerge>
+    </filter>
+  </defs>
+  
+  <style>
+    @keyframes cartMove {
+      0% { transform: translateX(-20px); opacity: 0; }
+      10% { transform: translateX(0); opacity: 1; }
+      40% { transform: translateX(0); opacity: 1; }
+      80% { transform: translateX(300px); opacity: 0; }
+      100% { transform: translateX(300px); opacity: 0; }
+    }
+    
+    @keyframes speedLines {
+      0% { opacity: 0; }
+      35% { opacity: 0; }
+      45% { opacity: 1; }
+      75% { opacity: 1; }
+      85% { opacity: 0; }
+      100% { opacity: 0; }
+    }
+    
+    @keyframes circleChange {
+      0%, 75% { fill: #2c85c8; } /* Alterado para #2c85c8 */
+      85%, 100% { fill: #28a745; }
+    }
+    
+    @keyframes spinnerRotate {
+      0% { opacity: 0; transform: rotate(0deg); }
+      60% { opacity: 0; transform: rotate(0deg); }
+      65% { opacity: 1; transform: rotate(0deg); }
+      85% { opacity: 1; transform: rotate(720deg); }
+      90% { opacity: 0; transform: rotate(720deg); }
+      100% { opacity: 0; transform: rotate(720deg); }
+    }
+    
+    @keyframes checkmarkAppear {
+      0%, 85% { opacity: 0; transform: scale(0); }
+      90% { opacity: 1; transform: scale(1.2); }
+      95% { transform: scale(0.95); }
+      100% { opacity: 1; transform: scale(1); }
+    }
+    
+    #backgroundCircle {
+      animation: circleChange 0.57s forwards;
+    }
+    
+    #cart {
+      animation: cartMove 0.57s forwards;
+    }
+    
+    #speedLines {
+      animation: speedLines 0.57s forwards;
+      opacity: 0;
+    }
+    
+    #spinner {
+      animation: spinnerRotate 0.57s forwards;
+      transform-origin: center;
+      opacity: 0;
+    }
+    
+    #checkmark {
+      animation: checkmarkAppear 0.57s forwards;
+      transform-origin: center;
+      opacity: 0;
+    }
+  </style>
+  
+  <!-- Círculo de fundo -->
+  <circle id="backgroundCircle" cx="200" cy="150" r="80" fill="#0d6efd" filter="url(#shadow)"></circle>
+  
+
+  
+  <!-- Spinner -->
+  <g id="spinner" stroke="white" stroke-width="8" fill="none">
+    <circle cx="200" cy="150" r="40" opacity="0.3"></circle>
+    <path d="M200 110 A40 40 0 0 1 240 150" stroke-linecap="round"></path>
+  </g>
+  
+  <!-- Carrinho de compras centralizado -->
+  <g id="cart" clip-path="url(#circleClip)">
+    <g transform="translate(188, 140) scale(0.18)">
+      <path fill="white" d="M218.97,-58.54 C210.74,-72.81 195.62,-81.7 179.16,-81.96 C179.16,-81.96 -120.58,-81.96 -120.58,-81.96 C-120.58,-81.96 -134.17,-134.88 -134.17,-134.88 C-136.99,-145.4 -146.7,-152.59 -157.59,-152.21 C-157.59,-152.21 -204.42,-152.21 -204.42,-152.21 C-217.35,-152.21 -227.84,-141.73 -227.84,-128.8 C-227.84,-115.86 -217.35,-105.38 -204.42,-105.38 C-204.42,-105.38 -175.38,-105.38 -175.38,-105.38 C-175.38,-105.38 -110.75,134.88 -110.75,134.88 C-107.92,145.4 -98.22,152.59 -87.33,152.21 C-87.33,152.21 123.42,152.21 123.42,152.21 C132.24,152.19 140.3,147.21 144.26,139.33 C144.26,139.33 221.07,-14.28 221.07,-14.28 C227.84,-28.46 227.04,-45.08 218.97,-58.54z M108.9,105.38 C108.9,105.38 -69.54,105.38 -69.54,105.38 C-69.54,105.38 -107.71,-35.13 -107.71,-35.13 C-107.71,-35.13 179.16,-35.13 179.16,-35.13 C179.16,-35.13 108.9,105.38 108.9,105.38z"></path>
+      <circle fill="white" cx="-98.93" cy="234.18" r="35.13"></circle>
+      <circle fill="white" cx="135.24" cy="234.17" r="35.13"></circle>
+    </g>
+  </g>
+  
+  <!-- Ícone de checkmark -->
+  <g id="checkmark">
+    <path fill="none" stroke="white" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" d="M170 148L192 170L232 130"/>
+  </g>
+</svg>

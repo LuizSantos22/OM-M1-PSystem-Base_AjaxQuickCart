@@ -1,0 +1,227 @@
+<div class="ps-content">
+    <div class="cart">
+        <div id="cart-overlay" class="cart-overlay"></div>  <!-- Adicionado: Overlay -->
+
+        <div class="page-title title-buttons">
+            <div class="pscart-header d-flex align-items-center justify-content-between pr-3 bg-fbfbfb mb-3">
+                <!-- Close Button -->
+                <div class="ps-col-icon">
+                    <a href="javascript:void(0);" 
+                       title="<?php echo $this->__('Close'); ?>" 
+                       class="btn-link" 
+                       id="edit-cart" 
+                       onclick="PS.layer.manager.close(); window.location.reload();">
+                        <i class="bi bi-arrow-right"></i>
+                    </a>
+                </div>
+                
+                <!-- Cart Title -->
+                <div class="ps-col-title text-center">
+                    <h5><strong><?php echo $this->__('MEU') ?></strong></h5>
+                    <h5><?php echo $this->__('CARRINHO') ?></h5>
+                </div>
+                
+                <!-- Edit Button -->
+                <div class="ps-col-edit">
+                    <a href="javascript:void(0);" 
+                       title="<?php echo $this->__('Editar'); ?>" 
+                       class="btn-link" 
+                       id="edit-cart" 
+                       onclick="setLocation('<?php echo $this->getUrl('checkout/cart/') ?>');">
+                        <i class="ic ic-edit2"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+        
+        <?php echo $this->getMessagesBlock()->getGroupedHtml() ?>
+        <?php echo $this->getChildHtml('form_before') ?>
+        
+        <form action="<?php echo $this->getUrl('checkout/cart/updatePost') ?>" method="post" id="cart-form">
+            <fieldset>
+                <div class="scrollable-area">
+                    <div class="ps-content-area">
+                        <table id="shopping-cart-table" class="ps-data-table ps-cart-table flex-table">
+                            <tbody>
+                                <?php foreach($this->getItems() as $_item): ?>
+                                    <tr class="first last odd">
+                                        <td class="first">
+                                            <?php if ($_item->getProduct()->getThumbnailUrl()): ?>
+                                                <img src="<?php echo $_item->getProduct()->getThumbnailUrl() ?>" alt="<?php echo $this->escapeHtml($_item->getProduct()->getName()) ?>" class="product-image" style="width: 75px; height: 75px;" />
+                                            <?php endif; ?>
+                                        </td>
+                                        <td class="last">
+                                            <div class="ps-product-details">
+                                                <span class="ps-product-name"> 
+                                                    <?php if ($_item->getProduct()->getProductUrl()): ?>
+                                                        <a href="<?php echo $_item->getProduct()->getProductUrl() ?>"><?php echo $this->escapeHtml($_item->getProduct()->getName()) ?></a>
+                                                    <?php else: ?>
+                                                        <?php echo $this->escapeHtml($_item->getProduct()->getName()) ?>
+                                                    <?php endif; ?>
+                                                </span>
+                                                <p class="ps-product-price"><?php echo $this->helper('checkout')->formatPrice($_item->getRowTotal()) ?></p>
+                                                
+                                                <!-- Product Quantity Adjustment -->
+                                                <div class="product-quantity-wrapper">
+                                                    <button class="btn-quantity minus" type="button">-</button> <!-- Botão "-" -->
+                                                    <input type="number" class="input-quantity" 
+                                                           value="<?php echo $_item->getQty(); ?>" 
+                                                           min="1" 
+                                                           data-price="<?php echo $_item->getProduct()->getFinalPrice(); ?>" 
+                                                           data-item-id="<?php echo $_item->getId(); ?>" />
+                                                    <button class="btn-quantity plus" type="button">+</button> <!-- Botão "+" -->
+                                                </div>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                <?php endforeach; ?>
+                            </tbody>
+                        </table>
+                    </div>
+                    <tfoot>
+                        <tr>
+                            <td colspan="2" class="a-right">
+                                <div class="buttons-container" style="padding: 20px; display: flex; flex-direction: column; justify-content: flex-end; align-items: center;">
+                                    <div class="ps-subtotal" style="width: 100%;">
+                                        <div class="ps-subtotal-wrapper">
+                                            <div class="ps-subtotal-container">
+                                                <span class="ps-label"><?php echo $this->__('Total:') ?></span>
+                                                <span class="ps-price">
+                                                    <?php 
+                                                    $grandTotal = 0; // Initialize grand total
+                                                    foreach ($this->getItems() as $_item): 
+                                                        $itemPrice = $_item->getProduct()->getFinalPrice(); // Get FINAL price
+                                                        $itemQty = $_item->getQty(); // Get item quantity
+                                                        $grandTotal += $itemPrice * $itemQty; // Calculate total for this item
+                                                    endforeach; 
+                                                    echo Mage::helper('checkout')->formatPrice($grandTotal); 
+                                                    ?>
+                                                </span>
+                                            </div>
+                                            <?php if ($_totalInclTax = $this->getGrandTotalInclTax()): ?>
+                                                <br />
+                                                <span class="ps-incl-tax">(<?php echo Mage::helper('checkout')->formatPrice($_totalInclTax) ?> <?php echo Mage::helper('tax')->getIncExcText(true) ?>)</span>
+                                            <?php endif; ?>
+                                        </div>
+                                        <button type="button" title="<?php echo $this->__('My Cart') ?>" class="button btn-viewcart" onclick="setLocation('<?php echo $this->getUrl('checkout/onepage/index') ?>');">
+                                            <span><?php echo $this->__('Finalizar Pedido') ?></span>
+                                        </button>
+                                        <?php if($this->getContinueShoppingUrl()): ?>
+                                            <button type="button" title="<?php echo $this->__('Continue Shopping') ?>" class="button btn-continue" onclick="PS.layer.manager.close(); window.location.reload();">
+                                                <span><?php echo $this->__('Continue Shopping') ?></span>
+                                            </button>
+                                        <?php endif; ?>
+                                    </div>
+                                </div>
+                            </td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div> <!-- End of content-area -->
+            </fieldset>
+        </form>
+
+        <script type="text/javascript">
+jQuery(function($) {
+    // Função para somar valores com precisão
+    function qtyAdd(a, b, precision) {
+        var x = Math.pow(10, precision || 2);
+        return (Math.round(a * x) + Math.round(b * x)) / x;
+    }
+
+    // Função para subtrair valores com precisão
+    function qtySubtract(a, b, precision) {
+        var x = Math.pow(10, precision || 2);
+        return (Math.round(a * x) - Math.round(b * x)) / x;
+    }
+
+    // Função para formatar o valor monetário
+    function formatCurrency(value) {
+        return 'R$' + value.toFixed(2).replace('.', ','); // Formata como "R$XX,XX"
+    }
+
+    // Função para atualizar o subtotal de um item
+    function updateSubtotal(input) {
+        var $row = $(input).closest('tr'); // Encontra a linha do produto
+        var price = parseFloat($(input).data('price')); // Preço unitário do produto
+        var qty = parseFloat($(input).val()) || 1; // Quantidade atual
+        var subtotal = qtyAdd(price, 0, 2) * qty; // Calcula o subtotal
+        // Atualiza o preço na linha do produto
+        $row.find('.ps-product-price').text(formatCurrency(subtotal));
+    }
+
+    // Função para atualizar o grand total (soma de todos os subtotais)
+    function updateGrandTotal() {
+        var grandTotal = 0;
+        // Itera sobre todos os itens no carrinho
+        $('.input-quantity').each(function() {
+            var price = parseFloat($(this).data('price')); // Preço unitário do produto
+            var qty = parseFloat($(this).val()) || 1; // Quantidade atual
+            grandTotal += qtyAdd(price, 0, 2) * qty; // Soma ao grand total
+        });
+        // Atualiza o elemento do grand total
+        $('.ps-subtotal .ps-price').text(formatCurrency(grandTotal));
+    }
+
+    // Função para enviar os dados atualizados para o backend via AJAX
+    function updateCart(item_id, qty) {
+        $.ajax({
+            url: '<?php echo Mage::getUrl('ajaxquickcart/viewcart/updatecart') ?>', // URL para o controller
+            type: 'POST',
+            data: {
+                'cart': {
+                    [item_id]: { 'qty': qty }
+                }
+            },
+            success: function(response) {
+                if (response.status === 'success') {
+                    console.log(response.message); // Registra sucesso no console
+                } else {
+                    console.warn(response.message || 'Erro desconhecido ao atualizar o carrinho.'); // Registra aviso no console
+                }
+            },
+            error: function(xhr, status, error) {
+                console.error('Erro ao atualizar o carrinho:', error); // Registra erro no console
+            }
+        });
+    }
+
+    // Evento para os botões de incremento e decremento
+    $('.btn-quantity').on('click', function() {
+        var $button = $(this);
+        var $input = $button.siblings('.input-quantity'); // Encontra o campo de quantidade
+        var oldValue = parseFloat($input.val()) || 1; // Valor atual
+        var newVal = 0;
+        var itemId = $input.data('item-id'); // Captura o ID do item
+        if ($button.hasClass('plus')) {
+            newVal = qtyAdd(oldValue, 1, 4); // Incrementa o valor
+        } else {
+            newVal = qtySubtract(oldValue, 1, 4); // Decrementa o valor
+            newVal = Math.max(1, newVal); // Garante que o valor mínimo seja 1
+        }
+        $input.val(newVal); // Atualiza o campo de quantidade
+        updateSubtotal($input); // Atualiza o subtotal
+        updateGrandTotal(); // Atualiza o grand total
+        // Envia os dados atualizados para o backend
+        updateCart(itemId, newVal);
+    });
+
+    // Evento para digitação manual no campo de quantidade
+    $('.input-quantity').on('input', function() {
+        var $input = $(this);
+        var value = Math.max(1, parseFloat($input.val()) || 1); // Valor atual
+        var itemId = $input.data('item-id'); // Captura o ID do item
+        $input.val(value); // Atualiza o campo de quantidade
+        updateSubtotal($input); // Atualiza o subtotal
+        updateGrandTotal(); // Atualiza o grand total
+        // Envia os dados atualizados para o backend
+        updateCart(itemId, value);
+    });
+
+    // Inicializa os subtotais e o grand total ao carregar a página
+    $('.input-quantity').each(function() {
+        updateSubtotal(this);
+    });
+    updateGrandTotal();
+});
+</script>
