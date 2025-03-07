@@ -1,0 +1,228 @@
+<div class="ps-content">
+    <div class="cart">
+        <div id="cart-overlay" class="cart-overlay"></div>  <!-- Overlay element -->
+
+        <div class="page-title title-buttons">
+            <div class="pscart-header d-flex align-items-center justify-content-between pr-3 bg-fbfbfb mb-3">
+                <!-- Close Button -->
+                <div class="ps-col-icon">
+                    <a href="javascript:void(0);" 
+                       title="<?php echo $this->__('Close'); ?>" 
+                       class="btn-link" 
+                       id="edit-cart" 
+                       onclick="PS.layer.manager.close(); window.location.reload();">
+                        <i class="bi bi-arrow-right"></i>
+                    </a>
+                </div>
+                
+                <!-- Cart Title -->
+                <div class="ps-col-title text-center">
+                    <h5><strong><?php echo $this->__('MEU') ?></strong></h5>
+                    <h5><?php echo $this->__('CARRINHO') ?></h5>
+                </div>
+                
+                <!-- Edit Button -->
+                <div class="ps-col-edit">
+                    <a href="javascript:void(0);" 
+                       title="<?php echo $this->__('Editar'); ?>" 
+                       class="btn-link" 
+                       id="edit-cart" 
+                       onclick="setLocation('<?php echo $this->getUrl('checkout/cart/') ?>');">
+                        <i class="ic ic-edit2"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+        
+        <?php echo $this->getMessagesBlock()->getGroupedHtml() ?>
+        <?php echo $this->getChildHtml('form_before') ?>
+        
+        <form action="<?php echo $this->getUrl('checkout/cart/updatePost') ?>" method="post" id="cart-form">
+            <?php echo $this->getBlockHtml('formkey'); ?>
+            <fieldset>
+                <div class="scrollable-area">
+                    <div class="ps-content-area">
+                        <table id="shopping-cart-table" class="ps-data-table ps-cart-table flex-table">
+                            <tbody>
+                                <?php foreach($this->getItems() as $_item): ?>
+                                    <?php
+                                    $_product = $_item->getProduct();
+                                    $canModify = $_item->canBeEdited();
+                                    ?>
+                                    <tr class="first last odd">
+                                        <td class="first">
+                                            <?php if ($_product->getThumbnail() && $_product->getThumbnail() != 'no_selection'): ?>
+                                                <img src="<?php echo $this->helper('catalog/image')->init($_product, 'thumbnail')->resize(75); ?>" alt="<?php echo $this->escapeHtml($_product->getName()) ?>" class="product-image" style="width: 75px; height: 75px;" />
+                                            <?php endif; ?>
+                                        </td>
+                                        <td class="last">
+                                            <div class="ps-product-details">
+                                                <span class="ps-product-name"> 
+                                                    <?php if ($_product->getProductUrl()): ?>
+                                                        <a href="<?php echo $_product->getProductUrl() ?>"><?php echo $this->escapeHtml($_product->getName()) ?></a>
+                                                    <?php else: ?>
+                                                        <?php echo $this->escapeHtml($_product->getName()) ?>
+                                                    <?php endif; ?>
+                                                </span>
+                                                <p class="ps-product-price"><?php echo $this->helper('checkout')->formatPrice($_item->getRowTotal()) ?></p>
+                                                
+                                                <!-- Product Quantity Adjustment -->
+                                                <div class="product-quantity-wrapper">
+                                                    <?php if ($canModify): ?>
+                                                        <button class="btn-quantity minus" type="button">-</button>
+                                                        <input type="number" class="input-quantity" 
+                                                            name="cart[<?php echo $_item->getId() ?>][qty]"
+                                                            value="<?php echo $_item->getQty(); ?>" 
+                                                            min="1" 
+                                                            data-price="<?php echo $_product->getFinalPrice(); ?>" 
+                                                            data-item-id="<?php echo $_item->getId(); ?>" />
+                                                        <button class="btn-quantity plus" type="button">+</button>
+                                                    <?php else: ?>
+                                                        <span class="qty-value"><?php echo $_item->getQty(); ?></span>
+                                                    <?php endif; ?>
+                                                </div>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                <?php endforeach; ?>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="ps-subtotal" style="width: 100%; padding: 20px;">
+                        <div class="ps-subtotal-wrapper">
+                            <div class="ps-subtotal-container">
+                                <span class="ps-label"><?php echo $this->__('Total:') ?></span>
+                                <span class="ps-price">
+                                    <?php 
+                                    $grandTotal = $this->getSubtotal(); // Use built-in method for subtotal
+                                    echo $this->helper('checkout')->formatPrice($grandTotal); 
+                                    ?>
+                                </span>
+                            </div>
+                            <?php if ($_totalInclTax = $this->getSubtotalInclTax()): ?>
+                                <br />
+                                <span class="ps-incl-tax">(<?php echo $this->helper('checkout')->formatPrice($_totalInclTax) ?> <?php echo $this->helper('tax')->getIncExcText(true) ?>)</span>
+                            <?php endif; ?>
+                        </div>
+                        <button type="button" title="<?php echo $this->__('Finalizar Pedido') ?>" class="button btn-viewcart" onclick="setLocation('<?php echo $this->getUrl('checkout/onepage/index') ?>');">
+                            <span><?php echo $this->__('Finalizar Pedido') ?></span>
+                        </button>
+                        <?php if($this->getContinueShoppingUrl()): ?>
+                            <button type="button" title="<?php echo $this->__('Continue Shopping') ?>" class="button btn-continue" onclick="PS.layer.manager.close(); window.location.reload();">
+                                <span><?php echo $this->__('Continue Shopping') ?></span>
+                            </button>
+                        <?php endif; ?>
+                    </div>
+                </div>
+            </fieldset>
+        </form>
+
+        <script type="text/javascript">
+//<![CDATA[
+jQuery(function($) {
+    // Function to add values with precision
+    function qtyAdd(a, b, precision) {
+        var x = Math.pow(10, precision || 2);
+        return (Math.round(a * x) + Math.round(b * x)) / x;
+    }
+
+    // Function to subtract values with precision
+    function qtySubtract(a, b, precision) {
+        var x = Math.pow(10, precision || 2);
+        return (Math.round(a * x) - Math.round(b * x)) / x;
+    }
+
+    // Function to format currency
+    function formatCurrency(value) {
+        return 'R$' + value.toFixed(2).replace('.', ','); // Format as "R$XX,XX"
+    }
+
+    // Function to update subtotal for an item
+    function updateSubtotal(input) {
+        var $row = $(input).closest('tr'); // Find product row
+        var price = parseFloat($(input).data('price')); // Unit price
+        var qty = parseFloat($(input).val()) || 1; // Current quantity
+        var subtotal = qtyAdd(price, 0, 2) * qty; // Calculate subtotal
+        // Update price in product row
+        $row.find('.ps-product-price').text(formatCurrency(subtotal));
+    }
+
+    // Function to update grand total (sum of all subtotals)
+    function updateGrandTotal() {
+        var grandTotal = 0;
+        // Iterate through all cart items
+        $('.input-quantity').each(function() {
+            var price = parseFloat($(this).data('price')); // Unit price
+            var qty = parseFloat($(this).val()) || 1; // Current quantity
+            grandTotal += qtyAdd(price, 0, 2) * qty; // Add to grand total
+        });
+        // Update grand total element
+        $('.ps-subtotal .ps-price').text(formatCurrency(grandTotal));
+    }
+
+    // Function to send updated data to backend via AJAX
+    function updateCart(item_id, qty) {
+        var data = {
+            'cart': {}
+        };
+        data['cart'][item_id] = {'qty': qty};
+        data['form_key'] = '<?php echo Mage::getSingleton('core/session')->getFormKey(); ?>';
+        
+        $.ajax({
+            url: '<?php echo Mage::getUrl('ajaxquickcart/viewcart/updatecart') ?>',
+            type: 'POST',
+            data: data,
+            success: function(response) {
+                if (response.status === 'success') {
+                    console.log(response.message); // Log success
+                } else {
+                    console.warn(response.message || 'Unknown error updating cart.'); // Log warning
+                }
+            },
+            error: function(xhr, status, error) {
+                console.error('Error updating cart:', error); // Log error
+            }
+        });
+    }
+
+    // Event for increment and decrement buttons
+    $('.btn-quantity').on('click', function() {
+        var $button = $(this);
+        var $input = $button.siblings('.input-quantity'); // Find quantity field
+        var oldValue = parseFloat($input.val()) || 1; // Current value
+        var newVal = 0;
+        var itemId = $input.data('item-id'); // Get item ID
+        if ($button.hasClass('plus')) {
+            newVal = qtyAdd(oldValue, 1, 4); // Increment value
+        } else {
+            newVal = qtySubtract(oldValue, 1, 4); // Decrement value
+            newVal = Math.max(1, newVal); // Ensure minimum value is 1
+        }
+        $input.val(newVal); // Update quantity field
+        updateSubtotal($input); // Update subtotal
+        updateGrandTotal(); // Update grand total
+        // Send updated data to backend
+        updateCart(itemId, newVal);
+    });
+
+    // Event for manual input in quantity field
+    $('.input-quantity').on('input', function() {
+        var $input = $(this);
+        var value = Math.max(1, parseFloat($input.val()) || 1); // Current value
+        var itemId = $input.data('item-id'); // Get item ID
+        $input.val(value); // Update quantity field
+        updateSubtotal($input); // Update subtotal
+        updateGrandTotal(); // Update grand total
+        // Send updated data to backend
+        updateCart(itemId, value);
+    });
+
+    // Initialize subtotals and grand total on page load
+    $('.input-quantity').each(function() {
+        updateSubtotal(this);
+    });
+    updateGrandTotal();
+});
+//]]>
+</script>
+</div>
