@@ -3,7 +3,7 @@
  * @category   PSystem
  * @package    PSystem_Base
  * @author     Pascal System <info@pascalsystem.pl>
- * @version    1.1.2
+ * @version    1.1.3
  */
 /**
  * Pascal Catalog Ajax config block
@@ -11,7 +11,7 @@
  * @category   PSystem
  * @package    PSystem_Base
  * @author     Pascal System <info@pascalsystem.pl>
- * @version    1.1.2
+ * @version    1.1.3
  */
 class PSystem_Base_Block_Headerjs extends Mage_Core_Block_Abstract
 {
