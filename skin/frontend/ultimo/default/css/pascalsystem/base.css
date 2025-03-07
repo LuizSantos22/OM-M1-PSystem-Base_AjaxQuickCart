@@ -1,0 +1,35 @@
+.pascalsystem-overlay {
+	background:#41424C;
+	z-index:995;
+	-moz-opacity:.85;
+	-webkit-opacity:.85;
+	-ms-filter:"progid:DXImageTransform.Microsoft.Alpha(Opacity=85)";
+	/*IE8*/ opacity:.85;
+	filter: alpha(opacity=85);
+}
+.pascalsystem-block-layered-nav {
+	-moz-opacity:.01;
+	-webkit-opacity:.01;
+	-ms-filter:"progid:DXImageTransform.Microsoft.Alpha(Opacity=01)";
+	/*IE8*/ opacity:.01;
+	filter: alpha(opacity=01);
+}
+.pascalsystem-loader {
+    background: transparent url('../../images/pascalsystem/cart8.svg') center center no-repeat; 
+    z-index: 996;
+    width: 55% !important;           /* Ajusta a largura do loader */
+    height: 55% !important;         /* Ajusta a altura do loader */
+    margin-left: auto;      /* Centraliza horizontalmente */
+    margin-right: auto;     /* Centraliza horizontalmente */
+    position: absolute;     /*Posiciona o elemento ABSOLUTE ao .pascalsystem-overlay*/
+    top: 50%;               /* Centraliza verticalmente */
+    left: 50%;               /* Centraliza horizontalmente */
+    margin-top: -50px;       /* Ajusta a margem para centralizar corretamente (metade da altura) */
+    margin-left: -50px;      /* Ajusta a margem para centralizar corretamente (metade da largura) */
+}
+.pascalsystem-content {
+	z-index:997;
+}
+.pascalsystem-content-layerimage {
+	border:none;
+}
