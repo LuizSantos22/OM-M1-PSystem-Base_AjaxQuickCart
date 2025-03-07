@@ -1,3 +1,13 @@
+/**
+ * Pascal System AjaxQuickCart
+ * 
+ * @category   PSystem
+ * @package    PSystem_AjaxQuickCart
+ * @author     Pascal System <info@pascalsystem.pl>
+ * @version    1.0.2
+ * @copyright  Copyright (c) 2013-2025 Pascal System
+ */
+
 PS.AjaxQuickCart = {
     initView: function(selector, url) {
         PS.onload(function() {
@@ -50,31 +60,41 @@ PS.AjaxQuickCart = {
         if (typeof this._ajaxUrl == 'undefined')
             return true;
 
-            toggleCart(true);
+        toggleCart(true);
 
         PS.layer.ajax(this._ajaxUrl, { 'content': 'content' });
         return false;
     },
 
     updateCart: function(itemId, qty) {
-        var url = '/ajaxquickcart/viewcart/updatecart'; // URL para o controller
+        var url = Mage.baseUrl + 'ajaxquickcart/viewcart/updatecart'; // Use Mage.baseUrl for better compatibility
+        
+        // Create parameters object with form key
+        var parameters = {
+            form_key: FORM_KEY // Global form key variable from OpenMage
+        };
+        
+        // Create cart object in the expected format
+        parameters.cart = {};
+        parameters.cart[itemId] = { qty: qty };
+        
         new Ajax.Request(url, {
             method: 'post',
-            parameters: {
-                cart: {
-                    [itemId]: { qty: qty }
-                }
-            },
+            parameters: parameters,
             onSuccess: function(response) {
-                var result = response.responseJSON;
-                if (result.status === 'success') {
-                    console.log(result.message);
-                } else {
-                    alert(result.message); // Exibe mensagem de erro para o usuário
+                try {
+                    var result = response.responseJSON;
+                    if (result && result.status === 'success') {
+                        console.log(result.message);
+                    } else {
+                        console.warn(result && result.message ? result.message : 'Error updating cart');
+                    }
+                } catch(e) {
+                    console.error('Invalid response format');
                 }
             },
             onFailure: function() {
-                alert('Ocorreu um erro ao atualizar o carrinho. Por favor, tente novamente.');
+                console.error('Failed to update cart. Please try again.');
             }
         });
     }
@@ -90,7 +110,7 @@ PS.AjaxQuickCart.AddToCart = function(el, type, conf) {
     el.onclick = function() {
         if (this._psquick.actionClick())
             return false;
-        return el._psajaxonclick();
+        return el._psajaxonclick ? el._psajaxonclick() : true;
     }
     this._element = el;
     this._type = type;
@@ -103,15 +123,18 @@ PS.AjaxQuickCart.AddToCart.prototype.actionClick = function() {
     }
     var url = this.getUrl();
     if (!url) return false;
+    
     // Trigger the slide-in effect
     console.log("Showing cart");
-    $('.flex-container .cart-header').addClass('active'); // Slide in the cart
+    if (typeof jQuery !== 'undefined') {
+        jQuery('.flex-container .cart-header').addClass('active'); // Slide in the cart
+    }
     
-     const cartOverlay = document.querySelector('.cart-overlay'); // Busca overlay
-   document.body.classList.add('push-body');
-            if (cartOverlay){
-                cartOverlay.classList.add('show'); // Show the overlay
-            }
+    const cartOverlay = document.querySelector('.cart-overlay'); // Find overlay
+    document.body.classList.add('push-body');
+    if (cartOverlay) {
+        cartOverlay.classList.add('show'); // Show the overlay
+    }
 
     PS.layer.ajax(url, { 'content': 'content' });
     return true;
@@ -119,26 +142,39 @@ PS.AjaxQuickCart.AddToCart.prototype.actionClick = function() {
 
 PS.AjaxQuickCart.AddToCart.prototype.closeCart = function() {
     console.log("Hiding cart");
-    $('.flex-container .cart-header').removeClass('active'); // Slide out the cart
+    if (typeof jQuery !== 'undefined') {
+        jQuery('.flex-container .cart-header').removeClass('active'); // Slide out the cart
+    }
     console.log("Hiding overlay");
 
-          const cartOverlay = document.querySelector('.cart-overlay');
-            if (cartOverlay){
-                cartOverlay.classList.remove('show'); // Oculta o  overlay
-            }
-     document.body.classList.remove('push-body');  //Remove a classe "push-body" do elemento <body>
-       PS.layer.manager.close(); //Oculto cart
-   
+    const cartOverlay = document.querySelector('.cart-overlay');
+    if (cartOverlay) {
+        cartOverlay.classList.remove('show'); // Hide overlay
+    }
+    document.body.classList.remove('push-body');  // Remove "push-body" class from body
+    PS.layer.manager.close(); // Hide cart
 };
 
 PS.AjaxQuickCart.AddToCart.submitAddProductToLayer = function() {
     var form = document.getElementById('product_addtocart_form');
     if (!form) {
-        return this._psajaxquickcart();
+        return this._psajaxquickcart ? this._psajaxquickcart() : false;
     }
+    
     var varienForm = new VarienForm('product_addtocart_form');
     if (!varienForm.validator.validate())
         return false;
+        
+    // Add form key if not present
+    var formKeyElement = form.querySelector('input[name="form_key"]');
+    if (!formKeyElement && typeof FORM_KEY !== 'undefined') {
+        formKeyElement = document.createElement('input');
+        formKeyElement.type = 'hidden';
+        formKeyElement.name = 'form_key';
+        formKeyElement.value = FORM_KEY;
+        form.appendChild(formKeyElement);
+    }
+    
     var methodSend = form.getAttribute('method');
     var url = form.getAttribute('action');
     var els = Form.getElements(form);
@@ -197,6 +233,11 @@ PS.AjaxQuickCart.AddToCart.prototype.getUrl = function() {
         } else {
             this._url = false;
         }
+        
+        if (!this._url) {
+            return false;
+        }
+        
         this._url = this._url.toString();
         if (this._url.indexOf('?') < 0)
             this._url += '?';
@@ -209,8 +250,45 @@ PS.AjaxQuickCart.AddToCart.prototype.getUrl = function() {
 
 PS.AjaxQuickCart._fixDoubleRefresh = false;
 
-// Função para sincronizar as alterações de quantidade com o backend
+// Global function for toggling cart state
+function toggleCart(open) {
+    var pageWrapper = document.querySelector('#root-wrapper'); // Your wrapper selector
+    var cartOverlay = document.querySelector('.cart-overlay');
+
+    if (open) {
+        document.body.classList.add('push-body'); // Add class for push effect
+        if (cartOverlay) {
+            cartOverlay.classList.add('show'); // Show overlay
+        }
+        // Fire custom event
+        if (typeof Event === 'function') {
+            document.dispatchEvent(new Event('ajaxquickcart:opened'));
+        } else {
+            // For IE compatibility
+            var event = document.createEvent('Event');
+            event.initEvent('ajaxquickcart:opened', true, true);
+            document.dispatchEvent(event);
+        }
+    } else {
+        document.body.classList.remove('push-body'); // Remove class
+        if (cartOverlay) {
+            cartOverlay.classList.remove('show'); // Hide overlay
+        }
+        // Fire custom event
+        if (typeof Event === 'function') {
+            document.dispatchEvent(new Event('ajaxquickcart:closed'));
+        } else {
+            // For IE compatibility
+            var event = document.createEvent('Event');
+            event.initEvent('ajaxquickcart:closed', true, true);
+            document.dispatchEvent(event);
+        }
+    }
+}
+
+// Set up event listeners and functionality when DOM is ready
 document.observe('dom:loaded', function() {
+    // Handle quantity input changes
     $$('.input-quantity').each(function(input) {
         input.observe('change', function(event) {
             var itemId = input.readAttribute('data-item-id');
@@ -219,9 +297,12 @@ document.observe('dom:loaded', function() {
         });
     });
 
+    // Handle quantity adjustment buttons
     $$('.btn-quantity').each(function(button) {
         button.observe('click', function(event) {
-            var input = button.siblings('.input-quantity')[0];
+            var input = button.up().select('.input-quantity')[0];
+            if (!input) return;
+            
             var itemId = input.readAttribute('data-item-id');
             var oldValue = parseFloat(input.value) || 1;
             var newValue = oldValue;
@@ -237,57 +318,40 @@ document.observe('dom:loaded', function() {
         });
     });
 
-    // Capture the existing close function and extend it
-    const originalCloseFunction = PS.layer.manager.close;
-
-    PS.layer.manager.close = function() {
-        originalCloseFunction.apply(this, arguments); // Call the original function
-        toggleCart(false); // Toggle the cart (remove class and hide overlay)
-    };
-
-    // Touch move prevent - Disable scroll page
-    document.addEventListener('touchmove', function(event) {
-      if (document.body.classList.contains('push-body')) {
-        event.preventDefault();
-      }
-    }, { passive: false });
-
-    // Adiciona uma função para abrir/fechar o carrinho (e para adicionar os efeitos)
-    function toggleCart(open) {
-        var pageWrapper = document.querySelector('#root-wrapper'); // Seletor do seu wrapper
-        var cartOverlay = document.querySelector('.cart-overlay');
-
-        if (!pageWrapper) {
-            console.error('Page wrapper not found! Adjust the selector in ajaxquickcart.js');
-            return;
-        }
-
-        if (open) {
-            document.body.classList.add('push-body'); // Adiciona a classe para o "push effect"
-            if (cartOverlay){
-                cartOverlay.classList.add('show'); // Show the overlay
-            }
-        } else {
-            document.body.classList.remove('push-body'); // Remove a classe
-            if (cartOverlay){
-                cartOverlay.classList.remove('show'); // Hide the overlay
-            }
-        }
+    // Extend PS.layer.manager.close to toggle cart state
+    if (typeof PS !== 'undefined' && PS.layer && PS.layer.manager) {
+        var originalCloseFunction = PS.layer.manager.close;
+        PS.layer.manager.close = function() {
+            originalCloseFunction.apply(this, arguments); // Call original function
+            toggleCart(false); // Toggle cart state
+        };
     }
 
-    // Capturar o evento de abertura do carrinho (AJAX)
+    // Prevent page scrolling when cart is open
+    document.addEventListener('touchmove', function(event) {
+        if (document.body.classList.contains('push-body')) {
+            event.preventDefault();
+        }
+    }, { passive: false });
+
+    // Register custom events
     document.observe('ajaxquickcart:open', function() {
         toggleCart(true);
     });
 
-    // Capturar o evento de fechamento do carrinho (AJAX ou clique)
     document.observe('ajaxquickcart:close', function() {
         toggleCart(false);
     });
     
-    // Capturar o evento de fechamento do carrinho (AJAX ou clique)
+    // Handle close button clicks
+    if (typeof jQuery !== 'undefined') {
         jQuery(document).on('click', '.ps-col-icon', function() {
             toggleCart(false);
         });
-    
+    } else {
+        // Fallback to Prototype for click handling
+        document.on('click', '.ps-col-icon', function(event, element) {
+            toggleCart(false);
+        });
+    }
 });
