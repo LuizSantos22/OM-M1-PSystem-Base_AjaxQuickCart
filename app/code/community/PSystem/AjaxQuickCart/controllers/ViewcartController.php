@@ -3,7 +3,7 @@
  * @category   PSystem
  * @package    PSystem_AjaxQuickCart
  * @author     Pascal System <info@pascalsystem.pl>
- * @version    1.0.2
+ * @version    1.0.3
  */
 /**
  * @see Mage_Checkout_CartController<?php
