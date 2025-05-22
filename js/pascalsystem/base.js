@@ -321,34 +321,36 @@ var ringtone = new Audio(base64Mp3);
     });
 };
 PS.layer.manager = function() {
-	if (typeof PS.layer.manager.background == 'undefined') {
-		PS.layer.manager.background = new PS.layer('overlay');
-		PS.layer.manager.background.setClass('pascalsystem-overlay');
-		PS.layer.manager.background._container.onclick = function() {
-			PS.layer.manager.close();
-		}
-	}
-	if (typeof PS.layer.manager.loader == 'undefined') {
-		PS.layer.manager.loader = new PS.layer('loader');
-		PS.layer.manager.loader.setClass('pascalsystem-loader');
-	}
-	if (typeof PS.layer.manager.content == 'undefined') {
-		PS.layer.manager.content = new PS.layer('content');
-		PS.layer.manager.content.setClass('pascalsystem-content');
-	}
-	return PS.layer.manager;
+    if (typeof PS.layer.manager.background == 'undefined') {
+        PS.layer.manager.background = new PS.layer('overlay');
+        PS.layer.manager.background.setClass('pascalsystem-overlay');
+        PS.layer.manager.background._container.onclick = function() {
+            PS.layer.manager.close();
+            window.location.reload(); // тнР Page reload added here
+        }
+    }
+    if (typeof PS.layer.manager.loader == 'undefined') {
+        PS.layer.manager.loader = new PS.layer('loader');
+        PS.layer.manager.loader.setClass('pascalsystem-loader');
+    }
+    if (typeof PS.layer.manager.content == 'undefined') {
+        PS.layer.manager.content = new PS.layer('content');
+        PS.layer.manager.content.setClass('pascalsystem-content');
+    }
+    return PS.layer.manager;
 }
+
 PS.layer.manager.close = function() {
-	if (!PS.layer.manager.loader.isHide()) return;
-	if (typeof PS.layer.manager.background != 'undefined') {
-		PS.layer.manager.background.hide();
-	}
-	if (typeof PS.layer.manager.loader != 'undefined') {
-		PS.layer.manager.loader.hide();
-	}
-	if (typeof PS.layer.manager.content != 'undefined') {
-		PS.layer.manager.content.hide();
-	}
+    if (!PS.layer.manager.loader.isHide()) return;
+    if (typeof PS.layer.manager.background != 'undefined') {
+        PS.layer.manager.background.hide();
+    }
+    if (typeof PS.layer.manager.loader != 'undefined') {
+        PS.layer.manager.loader.hide();
+    }
+    if (typeof PS.layer.manager.content != 'undefined') {
+        PS.layer.manager.content.hide();
+    }
 }
 /**
  PascalSystem Ajax function
