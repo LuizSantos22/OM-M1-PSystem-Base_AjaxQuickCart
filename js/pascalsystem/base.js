@@ -326,7 +326,7 @@ PS.layer.manager = function() {
         PS.layer.manager.background.setClass('pascalsystem-overlay');
         PS.layer.manager.background._container.onclick = function() {
             PS.layer.manager.close();
-            window.location.reload(); // тнР Page reload added here
+            window.location.reload(); // „„„~„Q Page reload added here
         }
     }
     if (typeof PS.layer.manager.loader == 'undefined') {
