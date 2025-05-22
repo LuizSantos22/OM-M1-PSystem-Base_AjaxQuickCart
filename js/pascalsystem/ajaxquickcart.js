@@ -1,16 +1,6 @@
-/**
- * Pascal System AjaxQuickCart
- * 
- * @category   PSystem
- * @package    PSystem_AjaxQuickCart
- * @author     Pascal System <info@pascalsystem.pl>
- * @version    1.0.2
- * @copyright  Copyright (c) 2013-2025 Pascal System
- */
-
 PS.AjaxQuickCart = {
-    initView: function(selector, url) {
-        PS.onload(function() {
+    initView: function (selector, url) {
+        PS.onload(function () {
             var els = $$(selector);
             for (var i = 0; i < els.length; i++) {
                 els[i]._ajaxUrl = url;
@@ -19,8 +9,8 @@ PS.AjaxQuickCart = {
         });
     },
 
-    initQuick: function(conf) {
-        PS.onload(function() {
+    initQuick: function (conf) {
+        PS.onload(function () {
             var els;
             var i;
             els = $$(conf.single.selector);
@@ -38,7 +28,7 @@ PS.AjaxQuickCart = {
         });
     },
 
-    initLayerQuick: function(selector) {
+    initLayerQuick: function (selector) {
         var els = $$(selector);
         var conf = { 'single': { 'selector': selector } };
         for (var i = 0; i < els.length; i++) {
@@ -48,15 +38,15 @@ PS.AjaxQuickCart = {
         }
     },
 
-    refresh: function(url) {
+    refresh: function (url) {
         if (PS.AjaxQuickCart._fixDoubleRefresh)
             return;
         PS.AjaxQuickCart._fixDoubleRefresh = true;
         PS.ajax.call(url, {});
-        setTimeout(function() { PS.AjaxQuickCart._fixDoubleRefresh = false; }, 100);
+        setTimeout(function () { PS.AjaxQuickCart._fixDoubleRefresh = false; }, 100);
     },
 
-    clickViewCart: function() {
+    clickViewCart: function () {
         if (typeof this._ajaxUrl == 'undefined')
             return true;
 
@@ -66,71 +56,58 @@ PS.AjaxQuickCart = {
         return false;
     },
 
-    updateCart: function(itemId, qty) {
-        var url = Mage.baseUrl + 'ajaxquickcart/viewcart/updatecart'; // Use Mage.baseUrl for better compatibility
-        
-        // Create parameters object with form key
-        var parameters = {
-            form_key: FORM_KEY // Global form key variable from OpenMage
-        };
-        
-        // Create cart object in the expected format
-        parameters.cart = {};
-        parameters.cart[itemId] = { qty: qty };
-        
+    updateCart: function (itemId, qty) {
+        var url = '/ajaxquickcart/viewcart/updatecart'; // URL para o controller
         new Ajax.Request(url, {
             method: 'post',
-            parameters: parameters,
-            onSuccess: function(response) {
-                try {
-                    var result = response.responseJSON;
-                    if (result && result.status === 'success') {
-                        console.log(result.message);
-                    } else {
-                        console.warn(result && result.message ? result.message : 'Error updating cart');
-                    }
-                } catch(e) {
-                    console.error('Invalid response format');
+            parameters: {
+                cart: {
+                    [itemId]: { qty: qty }
                 }
             },
-            onFailure: function() {
-                console.error('Failed to update cart. Please try again.');
+            onSuccess: function (response) {
+                var result = response.responseJSON;
+                if (result.status === 'success') {
+                    console.log(result.message);
+                } else {
+                    alert(result.message); // Exibe mensagem de erro para o usuário
+                }
+            },
+            onFailure: function () {
+                alert('Ocorreu um erro ao atualizar o carrinho. Por favor, tente novamente.');
             }
         });
     }
 };
 
-PS.AjaxQuickCart.AddToCart = function(el, type, conf) {
+PS.AjaxQuickCart.AddToCart = function (el, type, conf) {
     if (typeof el.onclick == 'function') {
         el._orginalStringOnClick = el.getAttribute('onclick');
         if (typeof el._orginalStringOnClick == 'function')
             el._orginalStringOnClick = el._orginalStringOnClick.toString();
         el._psajaxonclick = el.onclick;
     }
-    el.onclick = function() {
+    el.onclick = function () {
         if (this._psquick.actionClick())
             return false;
-        return el._psajaxonclick ? el._psajaxonclick() : true;
+        return el._psajaxonclick();
     }
     this._element = el;
     this._type = type;
     this._conf = conf;
 };
 
-PS.AjaxQuickCart.AddToCart.prototype.actionClick = function() {
+PS.AjaxQuickCart.AddToCart.prototype.actionClick = function () {
     if (this._type == 'single') {
         return this.actionClickSingle();
     }
     var url = this.getUrl();
     if (!url) return false;
-    
     // Trigger the slide-in effect
     console.log("Showing cart");
-    if (typeof jQuery !== 'undefined') {
-        jQuery('.flex-container .cart-header').addClass('active'); // Slide in the cart
-    }
-    
-    const cartOverlay = document.querySelector('.cart-overlay'); // Find overlay
+    $('.flex-container .cart-header').addClass('active'); // Slide in the cart
+
+    const cartOverlay = document.querySelector('.cart-overlay'); // Busca overlay
     document.body.classList.add('push-body');
     if (cartOverlay) {
         cartOverlay.classList.add('show'); // Show the overlay
@@ -140,41 +117,28 @@ PS.AjaxQuickCart.AddToCart.prototype.actionClick = function() {
     return true;
 };
 
-PS.AjaxQuickCart.AddToCart.prototype.closeCart = function() {
+PS.AjaxQuickCart.AddToCart.prototype.closeCart = function () {
     console.log("Hiding cart");
-    if (typeof jQuery !== 'undefined') {
-        jQuery('.flex-container .cart-header').removeClass('active'); // Slide out the cart
-    }
+    $('.flex-container .cart-header').removeClass('active'); // Slide out the cart
     console.log("Hiding overlay");
 
     const cartOverlay = document.querySelector('.cart-overlay');
     if (cartOverlay) {
-        cartOverlay.classList.remove('show'); // Hide overlay
+        cartOverlay.classList.remove('show'); // Oculta o  overlay
     }
-    document.body.classList.remove('push-body');  // Remove "push-body" class from body
-    PS.layer.manager.close(); // Hide cart
+    document.body.classList.remove('push-body');  //Remove a classe "push-body" do elemento <body>
+    PS.layer.manager.close(); //Oculto cart
+
 };
 
-PS.AjaxQuickCart.AddToCart.submitAddProductToLayer = function() {
+PS.AjaxQuickCart.AddToCart.submitAddProductToLayer = function () {
     var form = document.getElementById('product_addtocart_form');
     if (!form) {
-        return this._psajaxquickcart ? this._psajaxquickcart() : false;
+        return this._psajaxquickcart();
     }
-    
     var varienForm = new VarienForm('product_addtocart_form');
     if (!varienForm.validator.validate())
         return false;
-        
-    // Add form key if not present
-    var formKeyElement = form.querySelector('input[name="form_key"]');
-    if (!formKeyElement && typeof FORM_KEY !== 'undefined') {
-        formKeyElement = document.createElement('input');
-        formKeyElement.type = 'hidden';
-        formKeyElement.name = 'form_key';
-        formKeyElement.value = FORM_KEY;
-        form.appendChild(formKeyElement);
-    }
-    
     var methodSend = form.getAttribute('method');
     var url = form.getAttribute('action');
     var els = Form.getElements(form);
@@ -195,7 +159,7 @@ PS.AjaxQuickCart.AddToCart.submitAddProductToLayer = function() {
     return false;
 };
 
-PS.AjaxQuickCart.AddToCart.prototype.actionClickSingle = function() {
+PS.AjaxQuickCart.AddToCart.prototype.actionClickSingle = function () {
     if (typeof productAddToCartForm == 'undefined') {
         PS.AjaxQuickCart.AddToCart.submitAddProductToLayer();
         return false;
@@ -210,7 +174,7 @@ PS.AjaxQuickCart.AddToCart.prototype.actionClickSingle = function() {
     return true;
 };
 
-PS.AjaxQuickCart.AddToCart.prototype.getUrl = function() {
+PS.AjaxQuickCart.AddToCart.prototype.getUrl = function () {
     if (typeof this._url == 'undefined') {
         var att = this._element._orginalStringOnClick;
         if (att) {
@@ -233,11 +197,6 @@ PS.AjaxQuickCart.AddToCart.prototype.getUrl = function() {
         } else {
             this._url = false;
         }
-        
-        if (!this._url) {
-            return false;
-        }
-        
         this._url = this._url.toString();
         if (this._url.indexOf('?') < 0)
             this._url += '?';
@@ -250,59 +209,19 @@ PS.AjaxQuickCart.AddToCart.prototype.getUrl = function() {
 
 PS.AjaxQuickCart._fixDoubleRefresh = false;
 
-// Global function for toggling cart state
-function toggleCart(open) {
-    var pageWrapper = document.querySelector('#root-wrapper'); // Your wrapper selector
-    var cartOverlay = document.querySelector('.cart-overlay');
-
-    if (open) {
-        document.body.classList.add('push-body'); // Add class for push effect
-        if (cartOverlay) {
-            cartOverlay.classList.add('show'); // Show overlay
-        }
-        // Fire custom event
-        if (typeof Event === 'function') {
-            document.dispatchEvent(new Event('ajaxquickcart:opened'));
-        } else {
-            // For IE compatibility
-            var event = document.createEvent('Event');
-            event.initEvent('ajaxquickcart:opened', true, true);
-            document.dispatchEvent(event);
-        }
-    } else {
-        document.body.classList.remove('push-body'); // Remove class
-        if (cartOverlay) {
-            cartOverlay.classList.remove('show'); // Hide overlay
-        }
-        // Fire custom event
-        if (typeof Event === 'function') {
-            document.dispatchEvent(new Event('ajaxquickcart:closed'));
-        } else {
-            // For IE compatibility
-            var event = document.createEvent('Event');
-            event.initEvent('ajaxquickcart:closed', true, true);
-            document.dispatchEvent(event);
-        }
-    }
-}
-
-// Set up event listeners and functionality when DOM is ready
-document.observe('dom:loaded', function() {
-    // Handle quantity input changes
-    $$('.input-quantity').each(function(input) {
-        input.observe('change', function(event) {
+// Função para sincronizar as alterações de quantidade com o backend
+document.observe('dom:loaded', function () {
+    $$('.input-quantity').each(function (input) {
+        input.observe('change', function (event) {
             var itemId = input.readAttribute('data-item-id');
             var qty = parseFloat(input.value) || 1;
             PS.AjaxQuickCart.updateCart(itemId, qty);
         });
     });
 
-    // Handle quantity adjustment buttons
-    $$('.btn-quantity').each(function(button) {
-        button.observe('click', function(event) {
-            var input = button.up().select('.input-quantity')[0];
-            if (!input) return;
-            
+    $$('.btn-quantity').each(function (button) {
+        button.observe('click', function (event) {
+            var input = button.siblings('.input-quantity')[0];
             var itemId = input.readAttribute('data-item-id');
             var oldValue = parseFloat(input.value) || 1;
             var newValue = oldValue;
@@ -318,40 +237,57 @@ document.observe('dom:loaded', function() {
         });
     });
 
-    // Extend PS.layer.manager.close to toggle cart state
-    if (typeof PS !== 'undefined' && PS.layer && PS.layer.manager) {
-        var originalCloseFunction = PS.layer.manager.close;
-        PS.layer.manager.close = function() {
-            originalCloseFunction.apply(this, arguments); // Call original function
-            toggleCart(false); // Toggle cart state
-        };
-    }
+    // Capture the existing close function and extend it
+    const originalCloseFunction = PS.layer.manager.close;
 
-    // Prevent page scrolling when cart is open
-    document.addEventListener('touchmove', function(event) {
+    PS.layer.manager.close = function () {
+        originalCloseFunction.apply(this, arguments); // Call the original function
+        toggleCart(false); // Toggle the cart (remove class and hide overlay)
+    };
+
+    // Touch move prevent - Disable scroll page
+    document.addEventListener('touchmove', function (event) {
         if (document.body.classList.contains('push-body')) {
             event.preventDefault();
         }
     }, { passive: false });
 
-    // Register custom events
-    document.observe('ajaxquickcart:open', function() {
+    // Adiciona uma função para abrir/fechar o carrinho (e para adicionar os efeitos)
+    function toggleCart(open) {
+        var pageWrapper = document.querySelector('#root-wrapper'); // Seletor do seu wrapper
+        var cartOverlay = document.querySelector('.cart-overlay');
+
+        if (!pageWrapper) {
+            console.error('Page wrapper not found! Adjust the selector in ajaxquickcart.js');
+            return;
+        }
+
+        if (open) {
+            document.body.classList.add('push-body'); // Adiciona a classe para o "push effect"
+            if (cartOverlay) {
+                cartOverlay.classList.add('show'); // Show the overlay
+            }
+        } else {
+            document.body.classList.remove('push-body'); // Remove a classe
+            if (cartOverlay) {
+                cartOverlay.classList.remove('show'); // Hide the overlay
+            }
+        }
+    }
+
+    // Capturar o evento de abertura do carrinho (AJAX)
+    document.observe('ajaxquickcart:open', function () {
         toggleCart(true);
     });
 
-    document.observe('ajaxquickcart:close', function() {
+    // Capturar o evento de fechamento do carrinho (AJAX ou clique)
+    document.observe('ajaxquickcart:close', function () {
         toggleCart(false);
     });
-    
-    // Handle close button clicks
-    if (typeof jQuery !== 'undefined') {
-        jQuery(document).on('click', '.ps-col-icon', function() {
-            toggleCart(false);
-        });
-    } else {
-        // Fallback to Prototype for click handling
-        document.on('click', '.ps-col-icon', function(event, element) {
-            toggleCart(false);
-        });
-    }
+
+    // Capturar o evento de fechamento do carrinho (AJAX ou clique)
+    jQuery(document).on('click', '.ps-col-icon', function () {
+        toggleCart(false);
+    });
+
 });
