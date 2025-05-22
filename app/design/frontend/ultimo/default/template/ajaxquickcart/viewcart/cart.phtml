@@ -1,228 +1,577 @@
 <div class="ps-content">
     <div class="cart">
-        <div id="cart-overlay" class="cart-overlay"></div>  <!-- Overlay element -->
+        <div id="cart-overlay" class="cart-overlay"></div>  <!-- Adicionado: Overlay -->
 
         <div class="page-title title-buttons">
             <div class="pscart-header d-flex align-items-center justify-content-between pr-3 bg-fbfbfb mb-3">
                 <!-- Close Button -->
                 <div class="ps-col-icon">
-                    <a href="javascript:void(0);" 
-                       title="<?php echo $this->__('Close'); ?>" 
-                       class="btn-link" 
-                       id="edit-cart" 
+                    <a href="javascript:void(0);"
+                       title="<?php echo $this->__('Close'); ?>"
+                       class="btn-link"
+                       id="edit-cart"
                        onclick="PS.layer.manager.close(); window.location.reload();">
                         <i class="bi bi-arrow-right"></i>
                     </a>
                 </div>
-                
+
                 <!-- Cart Title -->
                 <div class="ps-col-title text-center">
                     <h5><strong><?php echo $this->__('MEU') ?></strong></h5>
                     <h5><?php echo $this->__('CARRINHO') ?></h5>
                 </div>
-                
+
                 <!-- Edit Button -->
                 <div class="ps-col-edit">
-                    <a href="javascript:void(0);" 
-                       title="<?php echo $this->__('Editar'); ?>" 
-                       class="btn-link" 
-                       id="edit-cart" 
+                    <a href="javascript:void(0);"
+                       title="<?php echo $this->__('Editar'); ?>"
+                       class="btn-link"
+                       id="edit-cart"
                        onclick="setLocation('<?php echo $this->getUrl('checkout/cart/') ?>');">
                         <i class="ic ic-edit2"></i>
                     </a>
                 </div>
             </div>
         </div>
-        
+
         <?php echo $this->getMessagesBlock()->getGroupedHtml() ?>
         <?php echo $this->getChildHtml('form_before') ?>
-        
+
         <form action="<?php echo $this->getUrl('checkout/cart/updatePost') ?>" method="post" id="cart-form">
-            <?php echo $this->getBlockHtml('formkey'); ?>
-            <fieldset>
+       <!-- Magento form key to prevent "Invalid form key" -->
+      <?php echo $this->getBlockHtml('formkey') ?>
+        <fieldset>
                 <div class="scrollable-area">
-                    <div class="ps-content-area">
-                        <table id="shopping-cart-table" class="ps-data-table ps-cart-table flex-table">
-                            <tbody>
-                                <?php foreach($this->getItems() as $_item): ?>
-                                    <?php
-                                    $_product = $_item->getProduct();
-                                    $canModify = $_item->canBeEdited();
-                                    ?>
-                                    <tr class="first last odd">
-                                        <td class="first">
-                                            <?php if ($_product->getThumbnail() && $_product->getThumbnail() != 'no_selection'): ?>
-                                                <img src="<?php echo $this->helper('catalog/image')->init($_product, 'thumbnail')->resize(75); ?>" alt="<?php echo $this->escapeHtml($_product->getName()) ?>" class="product-image" style="width: 75px; height: 75px;" />
-                                            <?php endif; ?>
-                                        </td>
-                                        <td class="last">
-                                            <div class="ps-product-details">
-                                                <span class="ps-product-name"> 
-                                                    <?php if ($_product->getProductUrl()): ?>
-                                                        <a href="<?php echo $_product->getProductUrl() ?>"><?php echo $this->escapeHtml($_product->getName()) ?></a>
-                                                    <?php else: ?>
-                                                        <?php echo $this->escapeHtml($_product->getName()) ?>
-                                                    <?php endif; ?>
-                                                </span>
-                                                <p class="ps-product-price"><?php echo $this->helper('checkout')->formatPrice($_item->getRowTotal()) ?></p>
-                                                
-                                                <!-- Product Quantity Adjustment -->
-                                                <div class="product-quantity-wrapper">
-                                                    <?php if ($canModify): ?>
-                                                        <button class="btn-quantity minus" type="button">-</button>
-                                                        <input type="number" class="input-quantity" 
-                                                            name="cart[<?php echo $_item->getId() ?>][qty]"
-                                                            value="<?php echo $_item->getQty(); ?>" 
-                                                            min="1" 
-                                                            data-price="<?php echo $_product->getFinalPrice(); ?>" 
-                                                            data-item-id="<?php echo $_item->getId(); ?>" />
-                                                        <button class="btn-quantity plus" type="button">+</button>
-                                                    <?php else: ?>
-                                                        <span class="qty-value"><?php echo $_item->getQty(); ?></span>
-                                                    <?php endif; ?>
-                                                </div>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                <?php endforeach; ?>
-                            </tbody>
-                        </table>
-                    </div>
-                    <div class="ps-subtotal" style="width: 100%; padding: 20px;">
-                        <div class="ps-subtotal-wrapper">
-                            <div class="ps-subtotal-container">
-                                <span class="ps-label"><?php echo $this->__('Total:') ?></span>
-                                <span class="ps-price">
-                                    <?php 
-                                    $grandTotal = $this->getSubtotal(); // Use built-in method for subtotal
-                                    echo $this->helper('checkout')->formatPrice($grandTotal); 
-                                    ?>
-                                </span>
-                            </div>
-                            <?php if ($_totalInclTax = $this->getSubtotalInclTax()): ?>
-                                <br />
-                                <span class="ps-incl-tax">(<?php echo $this->helper('checkout')->formatPrice($_totalInclTax) ?> <?php echo $this->helper('tax')->getIncExcText(true) ?>)</span>
-                            <?php endif; ?>
-                        </div>
-                        <button type="button" title="<?php echo $this->__('Finalizar Pedido') ?>" class="button btn-viewcart" onclick="setLocation('<?php echo $this->getUrl('checkout/onepage/index') ?>');">
-                            <span><?php echo $this->__('Finalizar Pedido') ?></span>
-                        </button>
-                        <?php if($this->getContinueShoppingUrl()): ?>
-                            <button type="button" title="<?php echo $this->__('Continue Shopping') ?>" class="button btn-continue" onclick="PS.layer.manager.close(); window.location.reload();">
-                                <span><?php echo $this->__('Continue Shopping') ?></span>
-                            </button>
-                        <?php endif; ?>
-                    </div>
-                </div>
+                    <div class="ps-content-area" style="padding: 10px; display: flex; flex-direction: column; justify-content: flex-end; align-items: center;">
+  <table id="shopping-cart-table" class="ps-data-table ps-cart-table flex-table">
+    <tbody>
+      <?php foreach ($this->getItems() as $_item): ?>
+      <tr class="cart-item-row">
+        <!-- Col 1: Thumbnail (spans both rows) -->
+        <td class="col-thumb">
+          <?php if ($_item->getProduct()->getThumbnailUrl()): ?>
+            <img
+              src="<?php echo $_item->getProduct()->getThumbnailUrl() ?>"
+              alt="<?php echo $this->escapeHtml($_item->getProduct()->getName()) ?>"
+              class="product-image"
+              width="75" height="75"
+            />
+          <?php endif; ?>
+        </td>
+
+        <!-- Col 2: Title (row1) / Price (row2) -->
+        <td class="col-details">
+          <div class="detail-title">
+            <?php if ($_item->getProduct()->getProductUrl()): ?>
+              <a href="<?php echo $_item->getProduct()->getProductUrl() ?>">
+                <?php echo $this->escapeHtml($_item->getProduct()->getName()) ?>
+              </a>
+            <?php else: ?>
+              <?php echo $this->escapeHtml($_item->getProduct()->getName()) ?>
+            <?php endif; ?>
+          </div>
+          <div class="detail-price ps-product-price"> <!-- Added ps-product-price class here -->
+            <?php echo $this->helper('checkout')->formatPrice($_item->getRowTotal()) ?>
+          </div>
+        </td>
+
+        <!-- Col 3: Spacer (empty) -->
+        <td class="col-spacer"></td>
+
+        <!-- Col 4: Remove (row1) / Quantity (row2) -->
+<td class="col-qty">
+  <div class="detail-remove-item">
+    <!-- Modified link for AJAX removal -->
+    <a href="javascript:void(0);"
+       class="ajax-remove-item"
+       data-item-id="<?php echo $_item->getId() ?>"
+       data-confirm-message="<?php echo $this->__('Are you sure you want to remove this item?') ?>"
+       title="<?php echo $this->__('Remove item') ?>">
+        <i class="bi bi-trash3"></i>
+    </a>
+  </div> <!-- Correct closing tag -->
+
+
+  <div class="detail-qty"> <!-- Correct div placement -->
+    <button class="btn-quantity minus btn-decrease" type="button">–</button>
+    <input
+      type="number"
+      class="input-quantity"
+      value="<?php echo $_item->getQty() ?>"
+      min="1"
+      data-price="<?php echo $_item->getProduct()->getFinalPrice() ?>"
+      data-item-id="<?php echo $_item->getId() ?>"
+    />
+    <button class="btn-quantity plus btn-increase" type="button">+</button>
+  </div>
+</td>
+
+      </tr>
+      <?php endforeach; ?>
+    </tbody>
+  </table>
+</div>
+
+                    <tfoot>
+                        <tr>
+                            <td colspan="4" class="a-right"> <!-- Colspan changed to 4 -->
+                                <div class="buttons-container" style="padding: 20px; display: flex; flex-direction: column; justify-content: flex-end; align-items: center;">
+                                    <div class="ps-subtotal" style="width: 100%;">
+                                        <div class="ps-coupon-wrapper">
+         <?php
+  // Get the session quote directly (always valid)
+  $_quote_coupon_minimal = Mage::getSingleton('checkout/session')->getQuote();
+  $_couponCode_minimal = $_quote_coupon_minimal->getCouponCode();
+?>
+
+
+         <!-- Group for Input/Apply Button -->
+  <?php
+// Assume $_quote_coupon_minimal and $_couponCode_minimal are already defined above
+?>
+
+<!-- Keep coupon form inside main cart form as per your original structure -->
+<!-- form action="<?php echo $this->getUrl('checkout/cart/updatePost') ?>" method="post" id="cart-form-coupon" -->
+  <!-- Magento form key - use the one from the main form -->
+  <?php // echo $this->getBlockHtml('formkey') ?>
+
+
+  <!-- Group for Input/Apply Button -->
+  <div class="ps-coupon-input-group"
+       style="display: <?php echo $_couponCode_minimal ? 'none' : 'block'; ?>;">
+    <!-- hidden form key - Removed custom one -->
+    <!-- <input type="hidden" name="coupon_form_key_minimal" id="custom-coupon-form-key-minimal" value="<?php echo Mage::getSingleton('core/session')->getFormKey() ?>" /> -->
+
+
+    <!-- unified input+button wrapper -->
+    <div class="ps-coupon-field">
+      <input
+        type="text"
+        id="coupon_code"
+        name="coupon_code"
+        class="ps-coupon-input"
+        placeholder="<?php echo $this->__('Enter coupon code'); ?>"
+        value="<?php echo $this->escapeHtml($_couponCode_minimal); ?>"
+      />
+      <button
+        type="button"
+        class="ps-coupon-btn"
+        onclick="applyCoupon()"
+      ><?php echo $this->__('Apply'); ?></button>
+    </div>
+  </div>
+
+  <!-- Applied Coupon: show code in readonly field + Remove button -->
+  <div class="ps-applied-coupon"
+       style="display: <?php echo $_couponCode_minimal ? 'block' : 'none'; ?>;">
+    <div class="ps-coupon-field">
+      <input
+        type="text"
+        id="coupon_code_readonly"
+        name="coupon_code"
+        class="ps-coupon-input"
+        value="<?php echo $this->escapeHtml($_couponCode_minimal); ?>"
+        readonly
+      />
+      <button
+        type="button"
+        class="ps-remove-coupon-btn"
+        onclick="removeCoupon()"
+      ><?php echo $this->__('Remove'); ?></button>
+    </div>
+  </div>
+
+<!-- /form -->
+</div>
+
+        <!-- Original Success/Error Messages Container -->
+        <div class="ps-message-container"></div>
+                                       <div class="ps-subtotal-wrapper">
+    <div class="ps-subtotal-container">
+        <span class="ps-label"><?php echo $this->__('Total:') ?></span>
+        <span class="ps-price">
+            <?php
+            // Calculate initial grand total based on item final prices * qty
+            $grandTotal = 0; // Initialize grand total
+            foreach ($this->getItems() as $_item):
+                // Ensure we use the correct row total which might include options etc.
+                // Using getRowTotal() for display seems more consistent with initial render
+                $grandTotal += $_item->getRowTotal();
+            endforeach;
+            echo Mage::helper('checkout')->formatPrice($grandTotal);
+            ?>
+        </span>
+    </div>
+    <?php if ($_totalInclTax = $this->getGrandTotalInclTax()): ?>
+        <br />
+        <span class="ps-incl-tax">(<?php echo Mage::helper('checkout')->formatPrice($_totalInclTax) ?> <?php echo Mage::helper('tax')->getIncExcText(true) ?>)</span>
+    <?php endif; ?>
+
+    <!-- Discount Row -->
+    <?php
+// Get current quote from session
+$_quote_coupon_minimal = Mage::getSingleton('checkout/session')->getQuote();
+
+// Optional: Only if quote might not be fresh
+// $_quote_coupon_minimal->collectTotals()->save();
+
+// Extract coupon code
+$_couponCode_minimal = $_quote_coupon_minimal->getCouponCode();
+
+// Calculate discount
+$_subtotal = $_quote_coupon_minimal->getSubtotal();
+$_subtotalWithDiscount = $_quote_coupon_minimal->getSubtotalWithDiscount();
+$_discountAmount = $_subtotal - $_subtotalWithDiscount;
+$showDiscount = ($_discountAmount > 0.001);
+?>
+
+<div class="ps-discount-row" style="display: <?php echo $showDiscount ? 'block' : 'none'; ?>;">
+    <span class="ps-label">
+        <?php echo $this->__('Discount'); ?>:
+    </span>
+    <span id="quick-cart-discount-amount" class="ps-discount-amount price">
+        <?php
+        if ($showDiscount) {
+            echo Mage::helper('checkout')->formatPrice(-$_discountAmount);
+        }
+        ?>
+    </span>
+</div>
+
+
+    <!-- Final Total Row -->
+     <?php
+     // Calculate initial final total (Grand Total minus Discount)
+     // This is a simplified calculation; Magento's total collection is complex
+     // but for display purposes based on subtotal discount, this is common.
+     // Be cautious if tax applies after discount.
+     $finalTotalInitial = $grandTotal - $_discountAmount_initial;
+     $showFinalTotalInitial = $showDiscountInitial; // Show final total if there's a discount
+     ?>
+    <div class="ps-final-total-container" style="display: <?php echo $showFinalTotalInitial ? 'block' : 'none'; ?>;"> <!-- Use block -->
+        <span class="ps-label"><?php echo $this->__('Final Total:') ?></span>
+        <span class="ps-final-price">
+            <?php
+            echo Mage::helper('checkout')->formatPrice($finalTotalInitial);
+            ?>
+        </span>
+    </div>
+</div> <!-- Close ps-subtotal-wrapper --> </div>
+
+
+                                        <button type="button" title="<?php echo $this->__('My Cart') ?>" class="button btn-viewcart" onclick="setLocation('<?php echo $this->getUrl('checkout/onepage/index') ?>');">
+                                            <span><?php echo $this->__('Finalizar Pedido') ?></span>
+                                        </button>
+                                        <?php if($this->getContinueShoppingUrl()): ?>
+                                            <button type="button" title="<?php echo $this->__('Continue Shopping') ?>" class="button btn-continue" onclick="PS.layer.manager.close(); window.location.reload();">
+                                                <span><?php echo $this->__('Continue Shopping') ?></span>
+                                            </button>
+                                        <?php endif; ?>
+                                    </div>
+                                </div>
+                            </td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div> <!-- End of content-area -->
             </fieldset>
         </form>
 
-        <script type="text/javascript">
-//<![CDATA[
+      <script type="text/javascript">
 jQuery(function($) {
-    // Function to add values with precision
+    // grab Magento’s form key - This is from the main #cart-form by default
+    var formKey = '<?php echo Mage::getSingleton('core/session')->getFormKey() ?>';
+
+    // Precision math functions (keep these)
     function qtyAdd(a, b, precision) {
         var x = Math.pow(10, precision || 2);
         return (Math.round(a * x) + Math.round(b * x)) / x;
     }
 
-    // Function to subtract values with precision
     function qtySubtract(a, b, precision) {
         var x = Math.pow(10, precision || 2);
         return (Math.round(a * x) - Math.round(b * x)) / x;
     }
 
-    // Function to format currency
+    // Currency formatting (for client-side visual updates before AJAX)
+    // This needs to match Magento's format exactly for parsing later
     function formatCurrency(value) {
-        return 'R$' + value.toFixed(2).replace('.', ','); // Format as "R$XX,XX"
+        var formatted = parseFloat(value).toFixed(2).replace('.', ','); // Always 2 decimals, comma decimal separator
+        return 'R$' + formatted; // Add currency symbol
     }
 
-    // Function to update subtotal for an item
-    function updateSubtotal(input) {
-        var $row = $(input).closest('tr'); // Find product row
-        var price = parseFloat($(input).data('price')); // Unit price
-        var qty = parseFloat($(input).val()) || 1; // Current quantity
-        var subtotal = qtyAdd(price, 0, 2) * qty; // Calculate subtotal
-        // Update price in product row
+    // Parse a currency string formatted by Magento (e.g., "R$1.234,56" or with HTML span) into float
+    function parseCurrency(currencyString) {
+        if (!currencyString) {
+            return 0;
+        }
+        // Remove HTML tags if any
+        var cleanString = $('<div>').html(currencyString).text();
+        // Remove currency symbols, thousands separators, replace decimal comma with dot
+        cleanString = cleanString.replace(/[R$]/g, '').replace(/\./g, '').replace(',', '.');
+        return parseFloat(cleanString) || 0;
+    }
+
+    // Update subtotal for an item (called after quantity change visually)
+    function updateSubtotal($input) {
+        var $row = $input.closest('tr'); // Find product row
+        var price = parseFloat($input.data('price')); // Unit price
+        var qty = parseFloat($input.val()) || 0;
+        if (qty < 0) qty = 0;
+
+        var subtotal = qtyAdd(price * qty, 0, 2);
+        // Update subtotal text (no HTML)
         $row.find('.ps-product-price').text(formatCurrency(subtotal));
     }
 
-    // Function to update grand total (sum of all subtotals)
-    function updateGrandTotal() {
+    // Update grand total visually (sum of all item subtotals)
+    function updateGrandTotalVisual() {
         var grandTotal = 0;
-        // Iterate through all cart items
-        $('.input-quantity').each(function() {
-            var price = parseFloat($(this).data('price')); // Unit price
-            var qty = parseFloat($(this).val()) || 1; // Current quantity
-            grandTotal += qtyAdd(price, 0, 2) * qty; // Add to grand total
+
+        $('#shopping-cart-table tbody tr.cart-item-row').each(function() {
+            var $row = $(this);
+            var itemSubtotalText = $row.find('.ps-product-price').text();
+            var itemSubtotal = parseCurrency(itemSubtotalText);
+            grandTotal = qtyAdd(grandTotal, itemSubtotal, 2);
         });
-        // Update grand total element
-        $('.ps-subtotal .ps-price').text(formatCurrency(grandTotal));
+
+        $('.ps-subtotal-container .ps-price').text(formatCurrency(grandTotal));
+        updateFinalTotalVisual(); // Update final total visually if discount active
     }
 
-    // Function to send updated data to backend via AJAX
-    function updateCart(item_id, qty) {
-        var data = {
-            'cart': {}
-        };
-        data['cart'][item_id] = {'qty': qty};
-        data['form_key'] = '<?php echo Mage::getSingleton('core/session')->getFormKey(); ?>';
-        
+    // Update final total visually based on discount and grand total
+    function updateFinalTotalVisual() {
+        var discountRow = $('.ps-discount-row');
+        var finalTotalContainer = $('.ps-final-total-container');
+
+        if (discountRow.is(':visible')) {
+            var grandTotalText = $('.ps-subtotal-container .ps-price').text();
+            var discountAmountText = $('.ps-discount-row .ps-discount-amount').text();
+
+            var grandTotalVal = parseCurrency(grandTotalText);
+            var discountVal = parseCurrency(discountAmountText);
+
+            var finalTotal = qtyAdd(grandTotalVal, discountVal, 2);
+
+            $('.ps-final-total-container .ps-final-price').text(formatCurrency(finalTotal));
+            finalTotalContainer.show();
+        } else {
+            finalTotalContainer.hide();
+        }
+    }
+
+    // Update totals after AJAX (remove/coupon/update)
+    // Use backend response with HTML possibly included (use .html())
+    function updateTotalsAfterAjaxResponse(response) {
+        $('.ps-subtotal-container .ps-price').html(response.grandTotal);
+
+        var discountRow = $('.ps-discount-row');
+        var discountAmountSpan = $('.ps-discount-amount');
+        var couponCodeTextSpan = $('.ps-coupon-code-text');
+
+        var discountValueCheck = parseCurrency(response.discountAmount);
+
+        if (response.discountAmount && discountValueCheck !== 0) {
+            discountAmountSpan.html(response.discountAmount);
+            couponCodeTextSpan.text(response.couponCode || '');
+            discountRow.show();
+
+            $('.ps-applied-coupon').show();
+            $('.ps-coupon-input-group').hide();
+        } else {
+            discountAmountSpan.html('');
+            couponCodeTextSpan.text('');
+            discountRow.hide();
+
+            $('.ps-applied-coupon').hide();
+            $('.ps-coupon-input-group').show();
+            $('#coupon_code').val('');
+        }
+
+        updateFinalTotalVisual();
+    }
+
+    // Apply coupon via AJAX
+    window.applyCoupon = function() {
+        var couponCode = $('#coupon_code').val().trim();
+        if (!couponCode) {
+            alert('<?php echo Mage::helper('core')->jsQuoteEscape($this->__('Por favor, insira um cupom.')); ?>');
+            return;
+        }
+
+        $('#cart-overlay').show();
+        $('.ps-coupon-btn').prop('disabled', true).text('<?php echo $this->__('Aplicando...'); ?>');
+
+        var couponFormKey = $('#cart-form input[name="form_key"]').val() || formKey;
+
         $.ajax({
-            url: '<?php echo Mage::getUrl('ajaxquickcart/viewcart/updatecart') ?>',
+            url: '<?php echo $this->getUrl("ajaxquickcart/viewcart/applyCoupon") ?>',
             type: 'POST',
-            data: data,
+            dataType: 'json',
+            data: {
+                coupon_code: couponCode,
+                form_key: couponFormKey
+            },
             success: function(response) {
                 if (response.status === 'success') {
-                    console.log(response.message); // Log success
+                    updateTotalsAfterAjaxResponse(response);
+                    console.log('Coupon applied:', response.message);
                 } else {
-                    console.warn(response.message || 'Unknown error updating cart.'); // Log warning
+                    alert(response.message || '<?php echo $this->__('Erro ao aplicar o cupom.'); ?>');
+                    updateTotalsAfterAjaxResponse(response);
                 }
             },
             error: function(xhr, status, error) {
-                console.error('Error updating cart:', error); // Log error
+                console.error('Error applying coupon:', status, error);
+                alert('<?php echo $this->__('Erro ao aplicar o cupom.'); ?>');
+            },
+            complete: function() {
+                $('.ps-coupon-btn').prop('disabled', false).text('<?php echo $this->__('Apply'); ?>');
+                $('#cart-overlay').hide();
+            }
+        });
+    };
+
+    // Remove coupon via AJAX
+    window.removeCoupon = function() {
+        $('#cart-overlay').show();
+        $('.ps-remove-coupon-btn').prop('disabled', true).text('<?php echo $this->__('Removendo...'); ?>');
+
+        var couponFormKey = $('#cart-form input[name="form_key"]').val() || formKey;
+
+        $.ajax({
+            url: '<?php echo $this->getUrl("ajaxquickcart/viewcart/removeCoupon") ?>',
+            type: 'POST',
+            dataType: 'json',
+            data: {
+                form_key: couponFormKey
+            },
+            success: function(response) {
+                if (response.status === 'success') {
+                    updateTotalsAfterAjaxResponse(response);
+                    console.log('Coupon removed:', response.message);
+                } else {
+                    alert(response.message || '<?php echo $this->__('Erro ao remover o cupom.'); ?>');
+                    updateTotalsAfterAjaxResponse(response);
+                }
+            },
+            error: function(xhr, status, error) {
+                console.error('Error removing coupon:', status, error);
+                alert('<?php echo $this->__('Erro ao remover o cupom.'); ?>');
+            },
+            complete: function() {
+                $('.ps-remove-coupon-btn').prop('disabled', false).text('<?php echo $this->__('Remove'); ?>');
+                $('#cart-overlay').hide();
+            }
+        });
+    };
+
+    // Quantity adjustments via + / - buttons
+    $(document).on('click', '.btn-increase, .btn-decrease', function() {
+        var $input = $(this).siblings('.input-quantity');
+        var value = parseInt($input.val(), 10) || 0;
+        if (value < 0) value = 0;
+        var itemId = $input.data('item-id');
+
+        if ($(this).hasClass('btn-increase')) {
+            value += 1;
+        } else if ($(this).hasClass('btn-decrease')) {
+            value = Math.max(1, value - 1);
+        }
+
+        $input.val(value);
+
+        // Update subtotal and grand total visually before backend update
+        updateSubtotal($input);
+        updateGrandTotalVisual();
+
+        // Send AJAX update to backend, no overlay
+        updateCart(itemId, value);
+    });
+
+    // AJAX backend update for quantity change (no overlay)
+    function updateCart(item_id, qty) {
+        $.ajax({
+            url: '<?php echo Mage::getUrl("ajaxquickcart/viewcart/updatecart") ?>',
+            type: 'POST',
+            dataType: 'json',
+            data: {
+                form_key: formKey,
+                cart: {
+                    [item_id]: { qty: qty }
+                }
+            },
+            success: function(response) {
+                if (response.status === 'success') {
+                    console.log(response.message);
+                    // Do NOT call updateTotalsAfterAjaxResponse here - visual update already done above
+                } else {
+                    alert(response.message || '<?php echo $this->__('Erro ao atualizar o carrinho.'); ?>');
+                }
+            },
+            error: function(xhr, status, error) {
+                console.error('Error updating cart:', status, error);
+                alert('<?php echo $this->__('Erro ao atualizar o carrinho.'); ?>');
             }
         });
     }
 
-    // Event for increment and decrement buttons
-    $('.btn-quantity').on('click', function() {
-        var $button = $(this);
-        var $input = $button.siblings('.input-quantity'); // Find quantity field
-        var oldValue = parseFloat($input.val()) || 1; // Current value
-        var newVal = 0;
-        var itemId = $input.data('item-id'); // Get item ID
-        if ($button.hasClass('plus')) {
-            newVal = qtyAdd(oldValue, 1, 4); // Increment value
-        } else {
-            newVal = qtySubtract(oldValue, 1, 4); // Decrement value
-            newVal = Math.max(1, newVal); // Ensure minimum value is 1
+    // Remove product from cart (with overlay)
+    window.removeProduct = function(item_id) {
+        if (!confirm('<?php echo $this->__('Tem certeza que deseja remover este produto?'); ?>')) {
+            return;
         }
-        $input.val(newVal); // Update quantity field
-        updateSubtotal($input); // Update subtotal
-        updateGrandTotal(); // Update grand total
-        // Send updated data to backend
-        updateCart(itemId, newVal);
-    });
 
-    // Event for manual input in quantity field
-    $('.input-quantity').on('input', function() {
-        var $input = $(this);
-        var value = Math.max(1, parseFloat($input.val()) || 1); // Current value
-        var itemId = $input.data('item-id'); // Get item ID
-        $input.val(value); // Update quantity field
-        updateSubtotal($input); // Update subtotal
-        updateGrandTotal(); // Update grand total
-        // Send updated data to backend
-        updateCart(itemId, value);
-    });
+        $('#cart-overlay').show();
 
-    // Initialize subtotals and grand total on page load
-    $('.input-quantity').each(function() {
-        updateSubtotal(this);
-    });
-    updateGrandTotal();
-});
-//]]>
+        $.ajax({
+            url: '<?php echo Mage::getUrl("ajaxquickcart/viewcart/removecart") ?>',
+            type: 'POST',
+            dataType: 'json',
+            data: {
+                form_key: formKey,
+                item_id: item_id
+            },
+            success: function(response) {
+                if (response.status === 'success') {
+                    $('#cart-product-' + item_id).remove();
+                    updateTotalsAfterAjaxResponse(response);
+
+                    // If cart empty, reload page or show empty message
+                    if ($('#shopping-cart-table tbody tr.cart-item-row').length === 0) {
+                        location.reload();
+                    }
+                } else {
+                    alert(response.message || '<?php echo $this->__('Erro ao remover o produto.'); ?>');
+                }
+            },
+            error: function(xhr, status, error) {
+                console.error('Error removing product:', status, error);
+                alert('<?php echo $this->__('Erro ao remover o produto.'); ?>');
+            },
+            complete: function() {
+                $('#cart-overlay').hide();
+            }
+        });
+    };
+    
+     document.addEventListener('click', function(event) {
+    const sidebar = document.querySelector('.ps-content');
+    const overlay = document.querySelector('#cart-overlay');
+
+    if (!sidebar || !overlay) return;
+
+    // Is overlay visible?
+    const overlayVisible = window.getComputedStyle(overlay).display !== 'none';
+
+    // Check if click was inside sidebar
+    const clickedInsideSidebar = sidebar.contains(event.target);
+
+    if (overlayVisible && !clickedInsideSidebar) {
+      console.log('Outside click detected - reloading page');
+      location.reload();
+    }
+  });
+
 </script>
-</div>
+
