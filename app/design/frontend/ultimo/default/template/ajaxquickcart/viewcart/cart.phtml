@@ -277,10 +277,10 @@ $showDiscount = ($_discountAmount > 0.001);
             </fieldset>
         </form>
 
-      <script type="text/javascript">
+       <script type="text/javascript">
 jQuery(function($) {
     // grab Magento’s form key - This is from the main #cart-form by default
-    var formKey = '<?php echo Mage::getSingleton('core/session')->getFormKey() ?>';
+  var formKey = '<?php echo Mage::getSingleton('core/session')->getFormKey() ?>';
 
     // Precision math functions (keep these)
     function qtyAdd(a, b, precision) {
@@ -296,282 +296,518 @@ jQuery(function($) {
     // Currency formatting (for client-side visual updates before AJAX)
     // This needs to match Magento's format exactly for parsing later
     function formatCurrency(value) {
-        var formatted = parseFloat(value).toFixed(2).replace('.', ','); // Always 2 decimals, comma decimal separator
+        // Assuming R$X,XX or R$X.XXX,XX format based on your example
+        var formatted = parseFloat(value).toFixed(2).replace('.', ','); // Always format to 2 decimal places, replace . with ,
+        // Add thousands separator if needed (optional, might make parsing harder if inconsistent)
+        // formatted = formatted.replace(/\B(?=(\d{3})+(?!\d))/g, '.'); // Add thousands separator (dot)
         return 'R$' + formatted; // Add currency symbol
     }
 
-    // Parse a currency string formatted by Magento (e.g., "R$1.234,56" or with HTML span) into float
+    // Function to parse a currency string formatted by Magento (e.g., "R$1.234,56" or "<span class=price>R$1.234,56</span>") into a float
     function parseCurrency(currencyString) {
         if (!currencyString) {
             return 0;
         }
-        // Remove HTML tags if any
+        // Remove any HTML tags first (safe way)
         var cleanString = $('<div>').html(currencyString).text();
-        // Remove currency symbols, thousands separators, replace decimal comma with dot
+        // Remove currency symbols (R$), thousands separators (.), and replace decimal comma (,) with a dot (.)
         cleanString = cleanString.replace(/[R$]/g, '').replace(/\./g, '').replace(',', '.');
-        return parseFloat(cleanString) || 0;
+        return parseFloat(cleanString) || 0; // Parse to float, default to 0 if parsing fails
     }
 
-    // Update subtotal for an item (called after quantity change visually)
-    function updateSubtotal($input) {
-        var $row = $input.closest('tr'); // Find product row
-        var price = parseFloat($input.data('price')); // Unit price
-        var qty = parseFloat($input.val()) || 0;
-        if (qty < 0) qty = 0;
 
-        var subtotal = qtyAdd(price * qty, 0, 2);
-        // Update subtotal text (no HTML)
+    // Update subtotal for a specific item (used by +/- buttons)
+    function updateSubtotal($input) {
+        var $row = $input.closest('tr'); // Find the product row
+        var price = parseFloat($input.data('price')); // Unit price of the product
+        var qty = parseFloat($input.val()) || 0; // Current quantity (default to 0 if invalid)
+        if (qty < 0) qty = 0; // Ensure quantity is not negative
+
+        var subtotal = qtyAdd(price * qty, 0, 2); // Calculate subtotal (price * qty)
+
+        // Update the price in the item row using the added class. Use .text() as our JS formatCurrency doesn't add HTML.
         $row.find('.ps-product-price').text(formatCurrency(subtotal));
     }
 
-    // Update grand total visually (sum of all item subtotals)
+    // Update grand total (sum of all item subtotals) (used by +/- buttons)
+    // This is for VISUAL updates *before* AJAX confirms backend totals
     function updateGrandTotalVisual() {
         var grandTotal = 0;
 
+        // Iterate over all quantity inputs *still in the DOM*
         $('#shopping-cart-table tbody tr.cart-item-row').each(function() {
             var $row = $(this);
+            // Get the item's current *visual* subtotal from the .ps-product-price element
+            // Use .text() because our JS updateSubtotal uses .text()
             var itemSubtotalText = $row.find('.ps-product-price').text();
-            var itemSubtotal = parseCurrency(itemSubtotalText);
-            grandTotal = qtyAdd(grandTotal, itemSubtotal, 2);
+            var itemSubtotal = parseCurrency(itemSubtotalText); // Parse the currency string
+
+            grandTotal = qtyAdd(grandTotal, itemSubtotal, 2); // Add item total to grand total
         });
 
+        // Update the grand total element using .text()
+        // Selector updated to match original structure
         $('.ps-subtotal-container .ps-price').text(formatCurrency(grandTotal));
-        updateFinalTotalVisual(); // Update final total visually if discount active
+
+         // Recalculate final total visually after grand total changes (if discount is active)
+        updateFinalTotalVisual(); // Use a separate function for purely visual update
     }
 
-    // Update final total visually based on discount and grand total
+     // Update final total calculation based on currently displayed grand total and discount
+     // This is for VISUAL updates *before* AJAX confirms backend totals
     function updateFinalTotalVisual() {
         var discountRow = $('.ps-discount-row');
         var finalTotalContainer = $('.ps-final-total-container');
 
+        // Only update final total visually if the discount row is currently visible
         if (discountRow.is(':visible')) {
+            // Get the currently displayed grand total text using .text()
             var grandTotalText = $('.ps-subtotal-container .ps-price').text();
+            // Get the currently displayed discount amount text using .text()
             var discountAmountText = $('.ps-discount-row .ps-discount-amount').text();
 
+            // Parse the numbers using the robust parseCurrency function
             var grandTotalVal = parseCurrency(grandTotalText);
             var discountVal = parseCurrency(discountAmountText);
 
+            // Calculate final total: Grand Total + Discount (since discount is likely negative)
             var finalTotal = qtyAdd(grandTotalVal, discountVal, 2);
 
+            // Update the final total display using .text()
             $('.ps-final-total-container .ps-final-price').text(formatCurrency(finalTotal));
-            finalTotalContainer.show();
+            finalTotalContainer.show(); // Ensure final total row is shown if discount is visible
         } else {
+            // If no discount, final total is same as grand total, or hide final total row
             finalTotalContainer.hide();
         }
     }
 
-    // Update totals after AJAX (remove/coupon/update)
-    // Use backend response with HTML possibly included (use .html())
-    function updateTotalsAfterAjaxResponse(response) {
-        $('.ps-subtotal-container .ps-price').html(response.grandTotal);
 
-        var discountRow = $('.ps-discount-row');
-        var discountAmountSpan = $('.ps-discount-amount');
-        var couponCodeTextSpan = $('.ps-coupon-code-text');
+    // Update all totals after AJAX call success (for remove/coupon/update)
+// This uses the authoritative formatted values from the backend response
+// This function will handle the <span class="price"> issue by using .html()
+// Function to format currency values for Brazilian format
+function formatCurrency(value) {
+    var numValue = typeof value === 'number' ? value : parseFloat(value);
+    return 'R$' + numValue.toFixed(2).replace('.', ',');
+}
 
-        var discountValueCheck = parseCurrency(response.discountAmount);
+// Function to parse a currency string into a number
+function parseCurrency(currencyString) {
+    if (!currencyString) return 0;
+    
+    // Remove any HTML tags first
+    var cleanString = $('<div>').html(currencyString).text();
+    
+    // Remove currency symbols and format properly
+    cleanString = cleanString.replace(/[R$]/g, '')
+                            .replace(/\./g, '')
+                            .replace(',', '.');
+    
+    var value = parseFloat(cleanString) || 0;
+    return Math.round(value * 100) / 100;
+}
 
-        if (response.discountAmount && discountValueCheck !== 0) {
-            discountAmountSpan.html(response.discountAmount);
-            couponCodeTextSpan.text(response.couponCode || '');
-            discountRow.show();
+// Update all totals after AJAX call success (for remove/coupon/update)
+function updateTotalsAfterAjaxResponse(response) {
+    // Get the formatted prices from response
+    var responseGrandTotal = parseCurrency(response.grandTotal);
+    var responseSubtotal = parseCurrency(response.subtotal);
+    var responseDiscountAmount = parseCurrency(response.discountAmount);
+    
+    // Update Subtotal display using the formatted price from the response
+    $('.ps-subtotal-container .ps-price').html(formatCurrency(responseSubtotal));
+    
+    // Update Discount display
+    var discountRow = $('.ps-discount-row');
+    var discountAmountSpan = $('.ps-discount-amount');
+    var couponCodeTextSpan = $('.ps-coupon-code-text');
+    
+    // Check if we have a valid discount
+    if (responseDiscountAmount !== 0 && Math.abs(responseDiscountAmount) < responseSubtotal) {
+        // Calculate discount as positive value for display
+        var displayDiscount = Math.abs(responseDiscountAmount);
+        
+        discountAmountSpan.html("- " + formatCurrency(displayDiscount));
+        couponCodeTextSpan.text(response.couponCode || '');
+        discountRow.show(); // Ensure discount row is visible
+        
+        // Ensure coupon UI is updated
+        $('.ps-applied-coupon').show();
+        $('.ps-coupon-input-group').hide();
+    } else {
+        // No discount or discount is zero
+        discountAmountSpan.html(''); // Clear discount amount display
+        couponCodeTextSpan.text(''); // Clear applied coupon code text
+        discountRow.hide(); // Hide discount row
+        
+        // Ensure coupon UI is updated
+        $('.ps-applied-coupon').hide();
+        $('.ps-coupon-input-group').show();
+        $('#coupon_code').val(''); // Clear the input field value
+    }
+    
+    // Always show final total as the grand total after discount
+    $('.ps-final-total-container .ps-final-price').html(formatCurrency(responseGrandTotal));
+    
+    // Show final total container if there's a discount
+    $('.ps-final-total-container').toggle(responseDiscountAmount !== 0);
+    
+    // Hide the overlay since we're done updating
+    $('#cart-overlay').hide();
+}
 
-            $('.ps-applied-coupon').show();
-            $('.ps-coupon-input-group').hide();
-        } else {
-            discountAmountSpan.html('');
-            couponCodeTextSpan.text('');
-            discountRow.hide();
-
-            $('.ps-applied-coupon').hide();
-            $('.ps-coupon-input-group').show();
-            $('#coupon_code').val('');
-        }
-
-        updateFinalTotalVisual();
+// Apply coupon function (keep this, uses AJAX, shows overlay)
+window.applyCoupon = function() {
+    var couponCode = $('#coupon_code').val().trim();
+    if (!couponCode) {
+        alert('<?php echo Mage::helper('core')->jsQuoteEscape($this->__('Por favor, insira um cupom.')); ?>');
+        return;
     }
 
-    // Apply coupon via AJAX
-    window.applyCoupon = function() {
-        var couponCode = $('#coupon_code').val().trim();
-        if (!couponCode) {
-            alert('<?php echo Mage::helper('core')->jsQuoteEscape($this->__('Por favor, insira um cupom.')); ?>');
-            return;
-        }
+    $('#cart-overlay').show(); // Show overlay
+    $('.ps-coupon-btn').prop('disabled', true).text('<?php echo $this->__('Aplicando...'); ?>');
 
-        $('#cart-overlay').show();
-        $('.ps-coupon-btn').prop('disabled', true).text('<?php echo $this->__('Aplicando...'); ?>');
+    // Use the formkey from the main #cart-form as per your original structure
+    var couponFormKey = $('#cart-form input[name="form_key"]').val() || formKey;
 
-        var couponFormKey = $('#cart-form input[name="form_key"]').val() || formKey;
-
-        $.ajax({
-            url: '<?php echo $this->getUrl("ajaxquickcart/viewcart/applyCoupon") ?>',
-            type: 'POST',
-            dataType: 'json',
-            data: {
-                coupon_code: couponCode,
-                form_key: couponFormKey
-            },
-            success: function(response) {
+    $.ajax({
+        url: '<?php echo $this->getUrl("ajaxquickcart/viewcart/applyCoupon") ?>',
+        type: 'POST',
+        dataType: 'json',
+        data: {
+            coupon_code: couponCode,
+            form_key: couponFormKey
+        },
+        success: function(response) {
+            console.log('Raw response:', response);
+            
+            if (response && typeof response === 'object') {
                 if (response.status === 'success') {
+                    // Update display based on the response
                     updateTotalsAfterAjaxResponse(response);
                     console.log('Coupon applied:', response.message);
                 } else {
+                    // Show error message
                     alert(response.message || '<?php echo $this->__('Erro ao aplicar o cupom.'); ?>');
                     updateTotalsAfterAjaxResponse(response);
                 }
-            },
-            error: function(xhr, status, error) {
-                console.error('Error applying coupon:', status, error);
-                alert('<?php echo $this->__('Erro ao aplicar o cupom.'); ?>');
-            },
-            complete: function() {
-                $('.ps-coupon-btn').prop('disabled', false).text('<?php echo $this->__('Apply'); ?>');
-                $('#cart-overlay').hide();
             }
-        });
-    };
+        },
+        error: function(xhr, status, error) {
+            // Log detailed error information
+            console.error('Error applying coupon:', {
+                status: status,
+                error: error,
+                statusText: xhr.statusText
+            });
+            
+            alert('<?php echo $this->__('Erro ao aplicar o cupom.'); ?>');
+            $('#cart-overlay').hide();
+        },
+        complete: function() {
+            $('.ps-coupon-btn').prop('disabled', false).text('<?php echo $this->__('Apply'); ?>');
+        }
+    });
+};
 
-    // Remove coupon via AJAX
-    window.removeCoupon = function() {
-        $('#cart-overlay').show();
-        $('.ps-remove-coupon-btn').prop('disabled', true).text('<?php echo $this->__('Removendo...'); ?>');
+// Remove coupon function
+window.removeCoupon = function() {
+    $('#cart-overlay').show(); // Show overlay
+    $('.ps-remove-coupon-btn').prop('disabled', true).text('<?php echo $this->__('Removendo...'); ?>');
 
-        var couponFormKey = $('#cart-form input[name="form_key"]').val() || formKey;
+    // Use the formkey from the main #cart-form
+    var couponFormKey = $('#cart-form input[name="form_key"]').val() || formKey;
 
-        $.ajax({
-            url: '<?php echo $this->getUrl("ajaxquickcart/viewcart/removeCoupon") ?>',
-            type: 'POST',
-            dataType: 'json',
-            data: {
-                form_key: couponFormKey
-            },
-            success: function(response) {
+    $.ajax({
+        url: '<?php echo $this->getUrl("ajaxquickcart/viewcart/removeCoupon") ?>',
+        type: 'POST',
+        dataType: 'json',
+        data: {
+            form_key: couponFormKey
+        },
+        success: function(response) {
+            if (response && typeof response === 'object') {
                 if (response.status === 'success') {
+                    // Update display based on the response
                     updateTotalsAfterAjaxResponse(response);
                     console.log('Coupon removed:', response.message);
                 } else {
                     alert(response.message || '<?php echo $this->__('Erro ao remover o cupom.'); ?>');
                     updateTotalsAfterAjaxResponse(response);
                 }
-            },
-            error: function(xhr, status, error) {
-                console.error('Error removing coupon:', status, error);
-                alert('<?php echo $this->__('Erro ao remover o cupom.'); ?>');
-            },
-            complete: function() {
-                $('.ps-remove-coupon-btn').prop('disabled', false).text('<?php echo $this->__('Remove'); ?>');
-                $('#cart-overlay').hide();
             }
-        });
-    };
+        },
+        error: function(xhr, status, error) {
+            console.error('Error removing coupon:', status, error);
+            alert('<?php echo $this->__('Erro ao remover o cupom.'); ?>');
+        },
+        complete: function() {
+            $('.ps-remove-coupon-btn').prop('disabled', false).text('<?php echo $this->__('Remove'); ?>');
+        }
+    });
+};
 
-    // Quantity adjustments via + / - buttons
+// Apply coupon function (keep this, uses AJAX, shows overlay)
+// Added response.couponCode to the response handling
+window.applyCoupon = function() {
+    var couponCode = $('#coupon_code').val().trim();
+    if (!couponCode) {
+        alert('<?php echo Mage::helper('core')->jsQuoteEscape($this->__('Por favor, insira um cupom.')); ?>');
+        return;
+    }
+
+    $('#cart-overlay').show(); // Show overlay
+    $('.ps-coupon-btn').prop('disabled', true).text('<?php echo $this->__('Aplicando...'); ?>');
+
+    // Use the formkey from the main #cart-form as per your original structure
+    var couponFormKey = $('#cart-form input[name="form_key"]').val() || formKey;
+
+    $.ajax({
+        url: '<?php echo $this->getUrl("ajaxquickcart/viewcart/applyCoupon") ?>',
+        type: 'POST',
+        dataType: 'json', // Expect JSON response
+        data: {
+            coupon_code: couponCode,
+            form_key: couponFormKey // Use the correct form key
+        },
+        beforeSend: function(xhr) {
+            // Log what we're sending
+            console.log('Sending coupon application:', {
+                coupon_code: couponCode,
+                form_key: couponFormKey
+            });
+        },
+        success: function(response, textStatus, xhr) {
+            console.log('Raw response:', response);
+            
+            if (response && typeof response === 'object') {
+                if (response.status === 'success') {
+                    // Update display based on the response
+                    updateTotalsAfterAjaxResponse(response);
+                    console.log('Coupon applied:', response.message);
+                } else {
+                    alert(response.message || '<?php echo $this->__('Erro ao aplicar o cupom.'); ?>');
+                    updateTotalsAfterAjaxResponse(response);
+                }
+            } else {
+                // Invalid response format
+                console.error('Invalid response format:', response);
+                alert('<?php echo $this->__('Resposta inválida do servidor. Por favor, atualize a página e tente novamente.'); ?>');
+            }
+        },
+        error: function(xhr, status, error) {
+            // Log detailed error information
+            console.error('Error applying coupon:', {
+                status: status,
+                error: error,
+                statusText: xhr.statusText,
+                responseText: xhr.responseText,
+                readyState: xhr.readyState
+            });
+            
+            // Try to parse any JSON error response
+            try {
+                var jsonResponse = JSON.parse(xhr.responseText);
+                if (jsonResponse && jsonResponse.message) {
+                    alert(jsonResponse.message);
+                } else {
+                    alert('<?php echo $this->__('Erro ao aplicar o cupom. Código de erro: ') ?>' + status);
+                }
+            } catch (e) {
+                alert('<?php echo $this->__('Erro ao aplicar o cupom. Verifique o console para mais detalhes.'); ?>');
+            }
+        },
+        complete: function() {
+            $('.ps-coupon-btn').prop('disabled', false).text('<?php echo $this->__('Apply'); ?>');
+            $('#cart-overlay').hide(); // Hide overlay
+        }
+    });
+};
+    // Handle quantity adjustments (+/- buttons) - RESTORE ORIGINAL BEHAVIOR
     $(document).on('click', '.btn-increase, .btn-decrease', function() {
         var $input = $(this).siblings('.input-quantity');
-        var value = parseInt($input.val(), 10) || 0;
-        if (value < 0) value = 0;
+        var value = parseInt($input.val(), 10) || 0; // Default to 0 if invalid
+         if (value < 0) value = 0; // Ensure non-negative
         var itemId = $input.data('item-id');
 
         if ($(this).hasClass('btn-increase')) {
             value += 1;
         } else if ($(this).hasClass('btn-decrease')) {
-            value = Math.max(1, value - 1);
+            value = Math.max(1, value - 1); // Ensure the value doesn't go below 1
         }
 
-        $input.val(value);
+        $input.val(value); // Update the input field visually
 
-        // Update subtotal and grand total visually before backend update
-        updateSubtotal($input);
-        updateGrandTotalVisual();
+        // *** Original Behavior: Update subtotals and grand total visually FIRST ***
+        updateSubtotal($input);     // Recalculate and update the subtotal for this item visually
+        updateGrandTotalVisual();   // Recalculate and update the grand total based on *all* visible items visually
 
-        // Send AJAX update to backend, no overlay
+        // Send updated data to the backend - AJAX call does NOT show overlay here
         updateCart(itemId, value);
     });
 
-    // AJAX backend update for quantity change (no overlay)
+     // Function to send updated data to the backend via AJAX (for quantity)
+     // *** Modified to remove overlay and response total updates, restore success log ***
     function updateCart(item_id, qty) {
+        // No overlay show/hide for quantity updates as per original behavior request
         $.ajax({
             url: '<?php echo Mage::getUrl("ajaxquickcart/viewcart/updatecart") ?>',
             type: 'POST',
-            dataType: 'json',
+             dataType: 'json', // Expect JSON response
             data: {
-                form_key: formKey,
-                cart: {
-                    [item_id]: { qty: qty }
+               form_key: formKey, // Use the main formKey
+               cart: {
+                   [item_id]: { qty: qty }
                 }
             },
             success: function(response) {
                 if (response.status === 'success') {
+                    // Log success message - Restored original log
                     console.log(response.message);
-                    // Do NOT call updateTotalsAfterAjaxResponse here - visual update already done above
+                    // *** Do NOT call updateTotalsAfterAjaxResponse here ***
+                    // Visual totals were updated *before* this AJAX call.
+                    // This AJAX confirms the backend state but doesn't update UI on success.
+                    // Only trigger full UI update if backend totals differ significantly,
+                    // or rely on remove/coupon AJAX for full sync, or maybe a separate "refresh totals" call if needed.
+
                 } else {
+                    // If update fails, you might want to revert the quantity visually
+                    // Or just alert the user. Reverting requires knowing the old qty.
                     alert(response.message || '<?php echo $this->__('Erro ao atualizar o carrinho.'); ?>');
                 }
             },
             error: function(xhr, status, error) {
-                console.error('Error updating cart:', status, error);
+                console.error('Error updating cart quantity:', status, error);
                 alert('<?php echo $this->__('Erro ao atualizar o carrinho.'); ?>');
             }
+            // No complete callback needed here
         });
     }
 
-    // Remove product from cart (with overlay)
-    window.removeProduct = function(item_id) {
-        if (!confirm('<?php echo $this->__('Tem certeza que deseja remover este produto?'); ?>')) {
-            return;
+
+    // --- START: Add the AJAX Remove Item Logic Here ---
+
+    // Handle item removal via AJAX
+    $(document).on('click', '.ajax-remove-item', function(e) {
+        e.preventDefault(); // Prevent the default link action (full page reload)
+
+        var $link = $(this);
+        var itemId = $link.data('item-id');
+        var confirmMessage = $link.data('confirm-message');
+
+        // Show confirmation dialog
+        if (!confirm(confirmMessage)) {
+            return; // If user cancels, do nothing
         }
 
-        $('#cart-overlay').show();
+        $('#cart-overlay').show(); // Show loading overlay
 
         $.ajax({
-            url: '<?php echo Mage::getUrl("ajaxquickcart/viewcart/removecart") ?>',
+            url: '<?php echo $this->getUrl("ajaxquickcart/viewcart/removeItem") ?>', // URL to your new controller action
             type: 'POST',
-            dataType: 'json',
+            dataType: 'json', // Expect JSON response
             data: {
-                form_key: formKey,
-                item_id: item_id
+                id: itemId,
+                form_key: formKey // Use the existing formKey variable
             },
             success: function(response) {
                 if (response.status === 'success') {
-                    $('#cart-product-' + item_id).remove();
+                    // Find the table row corresponding to the removed item and remove it from the DOM
+                    $link.closest('tr.cart-item-row').remove();
+
+                    // Update the cart totals based on the response (THIS IS THE DESIRED AJAX BEHAVIOR)
                     updateTotalsAfterAjaxResponse(response);
 
-                    // If cart empty, reload page or show empty message
-                    if ($('#shopping-cart-table tbody tr.cart-item-row').length === 0) {
-                        location.reload();
-                    }
+                    // Optional: Show a success message (you might need to adapt this)
+                    // For now, just log or display simply, maybe in the .ps-message-container
+                    console.log('Item removed:', response.message);
+                    // Example: Add message to a specific container if you have one for AJAX messages
+                    // $('.ps-message-container').html('<div class="success-message">' + response.message + '</div>');
+
+                     // Check if the cart is empty after removal
+                     if ($('#shopping-cart-table tbody tr.cart-item-row').length === 0) {
+                         // Handle empty cart state
+                         console.log("Cart is now empty.");
+                         // Add an empty cart message placeholder
+                         $('#shopping-cart-table tbody').append('<tr class="empty-cart-placeholder"><td colspan="4" class="a-center"><p class="empty-cart-message"><?php echo $this->__('Your shopping cart is empty.'); ?></p></td></tr>'); // Colspan 4
+                         // Hide the totals/checkout button section
+                         $('tfoot .buttons-container').hide();
+                         // Ensure totals area is also hidden/zeroed out if it's outside buttons-container
+                          $('.ps-subtotal-wrapper').hide(); // Hide the whole totals area
+                     }
+
+
                 } else {
-                    alert(response.message || '<?php echo $this->__('Erro ao remover o produto.'); ?>');
+                    // Show error message (using alert for simplicity, adapt as needed)
+                    alert(response.message || '<?php echo $this->__('Failed to remove item.'); ?>');
+                    // Example: Display error in a container
+                    // $('.ps-message-container').html('<div class="error-message">' + response.message + '</div>');
+                     // Still update totals based on response in case quote state changed partially
+                     updateTotalsAfterAjaxResponse(response);
                 }
             },
             error: function(xhr, status, error) {
-                console.error('Error removing product:', status, error);
-                alert('<?php echo $this->__('Erro ao remover o produto.'); ?>');
+                console.error('Error removing item:', status, error);
+                alert('<?php echo $this->__('Error communicating with server.'); ?>');
+                 // Example: Display error in a container
+                // $('.ps-message-container').html('<div class="error-message"><?php echo $this->__('Error communicating with server.'); ?></div>');
             },
             complete: function() {
-                $('#cart-overlay').hide();
+                $('#cart-overlay').hide(); // Hide loading overlay
             }
         });
-    };
-    
-     document.addEventListener('click', function(event) {
-    const sidebar = document.querySelector('.ps-content');
-    const overlay = document.querySelector('#cart-overlay');
+    });
 
-    if (!sidebar || !overlay) return;
+    // --- END: Add the AJAX Remove Item Logic Here ---
 
-    // Is overlay visible?
-    const overlayVisible = window.getComputedStyle(overlay).display !== 'none';
 
-    // Check if click was inside sidebar
-    const clickedInsideSidebar = sidebar.contains(event.target);
+    // Initial setup on page load
+    $(document).ready(function() {
+        // Check if the cart is initially empty
+        if ($('#shopping-cart-table tbody tr.cart-item-row').length === 0) {
+             // If empty, hide relevant sections and show empty message
+             $('tfoot .buttons-container').hide();
+             $('.ps-subtotal-wrapper').hide(); // Hide the totals wrapper if cart is empty initially
+             $('#shopping-cart-table tbody').append('<tr class="empty-cart-placeholder"><td colspan="4" class="a-center"><p class="empty-cart-message"><?php echo $this->__('Your shopping cart is empty.'); ?></p></td></tr>'); // Colspan 4
+        } else {
+            // If not empty, initialize visual calculations
+            // Update individual item subtotals on load based on initial quantity/price
+             $('.input-quantity').each(function() { updateSubtotal($(this)); });
+             // Calculate and display initial grand total visually based on item subtotals
+             // This ensures the JS grand total matches the PHP rendered one initially
+             updateGrandTotalVisual();
+             // Update final total visually based on the initial discount rendered by PHP
+             updateFinalTotalVisual();
 
-    if (overlayVisible && !clickedInsideSidebar) {
-      console.log('Outside click detected - reloading page');
-      location.reload();
-    }
-  });
+             // Ensure coupon UI is correct based on initial PHP render
+             <?php if ($_couponCode_minimal): ?>
+                $('.ps-applied-coupon').show();
+                $('.ps-coupon-input-group').hide();
+                 $('.ps-coupon-code-text').text('<?php echo $this->escapeHtml($_couponCode_minimal); ?>');
+             <?php else: ?>
+                 $('.ps-applied-coupon').hide();
+                 $('.ps-coupon-input-group').show();
+             <?php endif; ?>
+
+             <?php if ($showDiscountInitial): ?>
+                 $('.ps-discount-row').show();
+                  // The discount amount is already set by PHP render
+             <?php else: ?>
+                 $('.ps-discount-row').hide();
+             <?php endif; ?>
+
+              <?php if ($showFinalTotalInitial): ?>
+                 $('.ps-final-total-container').show();
+                 // The final total is already set by PHP render
+             <?php else: ?>
+                 $('.ps-final-total-container').hide();
+             <?php endif; ?>
+
+        }
+    });
+
+
+}); // End of jQuery(function($) { ... });
 
 </script>
-
