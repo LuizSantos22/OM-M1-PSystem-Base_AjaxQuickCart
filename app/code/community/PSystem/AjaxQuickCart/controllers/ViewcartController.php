@@ -1,195 +1,243 @@
 <?php
-/**
- * @category   PSystem
- * @package    PSystem_AjaxQuickCart
- * @author     Pascal System <info@pascalsystem.pl>
- * @version    1.0.3
- */
-/**
- * @see Mage_Checkout_CartController<?php
-/**
- * @category   PSystem
- * @package    PSystem_AjaxQuickCart
- * @author     Pascal System <info@pascalsystem.pl>
- * @version    1.0.3
- */
-/**
- * @see Mage_Checkout_CartController
- */
-require_once 'Mage/Checkout/controllers/CartController.php';
-/**
- * Pascal Quick Cart Ajax Header JavaScripts
- * 
- * @category   PSystem
- * @package    PSystem_AjaxQuickCart
- * @author     Pascal System <info@pascalsystem.pl>
- * @version    1.0.3
- */
-class PSystem_AjaxQuickCart_ViewcartController extends Mage_Checkout_CartController {
-    /**
-     * Index action display only products in cart
-     * 
-     * @return void
-     */
-    public function indexAction() {
-        $this->loadLayout()
-            ->_initLayoutMessages('checkout/session')
-            ->_initLayoutMessages('catalog/session');
-        $this->renderLayout();
-    }
-    /**
-     * Refresh box with items in cart
-     * 
-     * @return void
-     */
-    public function refreshAction() {
-        /* @var $layout Mage_Core_Model_Layout */
-        $layout = $this->loadLayout()->getLayout();
-        /* @var $ajaxBlock PSystem_AjaxQuickCart_Block_Refresh_Response */
-        if (($ajaxBlock = $layout->getBlock('ajax.response'))
-            && ($ajaxBlock instanceof PSystem_AjaxQuickCart_Block_Refresh_Response)) {
-            $this->getResponse()->setBody($ajaxBlock->toHtml());
-            return;
+require_once Mage::getModuleDir('controllers', 'Mage_Checkout') . DS . 'CartController.php';
+
+class PSystem_AjaxQuickCart_ViewcartController extends Mage_Checkout_CartController
+{
+    const LOG_FILE = 'pascal_ajaxquickcart.log';
+
+    protected function _validateFormKey()
+    {
+        $session = Mage::getSingleton('core/session');
+        if (!$session) {
+            Mage::log('Core Session not available.', Zend_Log::ERR, self::LOG_FILE);
+            return false;
         }
-    }
-    /**
-     * Update cart via AJAX
-     * 
-     * @return void
-     */
-    public function updatecartAction() {
-        $response = array();
-        try {
-            // Get the cart and data sent from frontend
-            $cart = Mage::getSingleton('checkout/cart');
-            $cartData = $this->getRequest()->getParam('cart');
-            // Validate received data
-            if (!is_array($cartData)) {
-                // No notification will be displayed here
-                throw new Exception();
-            }
-            // Iterate over cart items and update quantities
-            foreach ($cartData as $itemId => $itemInfo) {
-                $item = $cart->getQuote()->getItemById($itemId);
-                if (!$item) {
-                    // No notification will be displayed here
-                    throw new Exception();
-                }
-                // Check if quantity was provided
-                if (isset($itemInfo['qty'])) {
-                    $qty = (float)$itemInfo['qty'];
-                    if ($qty <= 0) {
-                        // No notification will be displayed here
-                        throw new Exception();
-                    }
-                    $item->setQty($qty);
-                }
-            }
-            // Save cart and recalculate totals
-            $cart->save();
-            $cart->getQuote()->collectTotals();
-            Mage::getSingleton('checkout/session')->setCartWasUpdated(true);
-            // Success response without message
-            $response['status'] = 'success';
-        } catch (Exception $e) {
-            // Log error but don't return any visible message to user
-            Mage::logException($e);
-            $response['status'] = 'error';
+
+        $formKey = $this->getRequest()->getParam('form_key');
+        if (!$formKey || $formKey !== $session->getFormKey()) {
+            Mage::log("Form Key mismatch. Request: " . Mage::helper('core')->escapeHtml($formKey) . " | Session: " . $session->getFormKey(), Zend_Log::WARN, self::LOG_FILE);
+            return false;
         }
-        // Return response as JSON
-        $this->getResponse()->setHeader('Content-Type', 'application/json');
-        $this->getResponse()->setBody(Mage::helper('core')->jsonEncode($response));
+
+        return true;
     }
-}
- */
-require_once 'Mage/Checkout/controllers/CartController.php';
-/**
- * Pascal Quick Cart Ajax Header JavaScripts
- * 
- * @category   PSystem
- * @package    PSystem_AjaxQuickCart
- * @author     Pascal System <info@pascalsystem.pl>
- * @version    1.0.2
- */
-class PSystem_AjaxQuickCart_ViewcartController extends Mage_Checkout_CartController {
-    /**
-     * Index action display only products in cart
-     * 
-     * @return void
-     */
-    public function indexAction() {
+
+    protected function _sendJson(array $response)
+    {
+        $this->getResponse()
+            ->clearHeaders()
+            ->setHeader('Content-Type', 'application/json', true)
+            ->setBody(Mage::helper('core')->jsonEncode($response));
+    }
+
+    public function indexAction()
+    {
+        Mage::log('ViewcartController::indexAction triggered.', Zend_Log::DEBUG, self::LOG_FILE);
         $this->loadLayout()
-            ->_initLayoutMessages('checkout/session')
-            ->_initLayoutMessages('catalog/session');
+             ->_initLayoutMessages('checkout/session')
+             ->_initLayoutMessages('catalog/session');
         $this->renderLayout();
     }
 
-    /**
-     * Refresh box with items in cart
-     * 
-     * @return void
-     */
-    public function refreshAction() {
-        /* @var $layout Mage_Core_Model_Layout */
-        $layout = $this->loadLayout()->getLayout();
-        /* @var $ajaxBlock PSystem_AjaxQuickCart_Block_Refresh_Response */
-        if (($ajaxBlock = $layout->getBlock('ajax.response'))
-            && ($ajaxBlock instanceof PSystem_AjaxQuickCart_Block_Refresh_Response)) {
-            echo $ajaxBlock->toHtml();
-            exit;
+    public function refreshAction()
+    {
+        Mage::log('ViewcartController::refreshAction triggered.', Zend_Log::DEBUG, self::LOG_FILE);
+        $this->loadLayout();
+        $block = $this->getLayout()->getBlock('ajax.response');
+
+        if ($block instanceof PSystem_AjaxQuickCart_Block_Refresh_Response) {
+            $this->getResponse()->setBody($block->toHtml());
+        } else {
+            Mage::log('ajax.response block not found or incorrect.', Zend_Log::WARN, self::LOG_FILE);
+            $this->getResponse()->setBody('');
         }
     }
 
-    /**
-     * Update cart via AJAX
-     * 
-     * @return void
-     */
-    public function updatecartAction() {
-        $response = array();
-        try {
-            // Obter o carrinho e os dados enviados pelo frontend
-            $cart = Mage::getSingleton('checkout/cart');
-            $cartData = $this->getRequest()->getParam('cart');
+    public function updatecartAction()
+    {
+        Mage::log('ViewcartController::updatecartAction triggered.', Zend_Log::DEBUG, self::LOG_FILE);
+        $response = ['status' => 'error', 'message' => '', 'grandTotal' => '', 'subtotal' => '', 'discountAmount' => ''];
 
-            // Validar os dados recebidos
-            if (!is_array($cartData)) {
-                // Nenhuma notificação será exibida aqui
-                throw new Exception();
-            }
-
-            // Iterar sobre os itens do carrinho e atualizar as quantidades
-            foreach ($cartData as $itemId => $itemInfo) {
-                $item = $cart->getQuote()->getItemById($itemId);
-                if (!$item) {
-                    // Nenhuma notificação será exibida aqui
-                    throw new Exception();
-                }
-
-                // Verificar se a quantidade foi fornecida
-                if (isset($itemInfo['qty'])) {
-                    $qty = (float)$itemInfo['qty'];
-                    if ($qty <= 0) {
-                        // Nenhuma notificação será exibida aqui
-                        throw new Exception();
-                    }
-                    $item->setQty($qty);
-                }
-            }
-
-            // Salvar o carrinho e recalcular os totais
-            $cart->getQuote()->collectTotals()->save();
-            Mage::getSingleton('checkout/session')->setCartWasUpdated(true);
-
-            // Resposta de sucesso sem mensagem
-            $response['status'] = 'success';
-        } catch (Exception $e) {
-            // Logar o erro, mas não retornar nenhuma mensagem visível ao usuário
-            Mage::logException($e);
-            $response['status'] = 'error';
+        if (!$this->_validateFormKey()) {
+            $response['message'] = $this->__('Invalid form key.');
+            return $this->_sendJson($response);
         }
 
-        // Retornar a resposta como JSON
-        $this->getResponse()->setBody(Mage::helper('core')->jsonEncode($response));
+        try {
+            $cart = $this->_getCart();
+            $cartData = $this->getRequest()->getParam('cart');
+
+            if (!is_array($cartData)) {
+                Mage::log('Cart update failed: Invalid cart data format.', Zend_Log::WARN, self::LOG_FILE);
+                $response['message'] = $this->__('Invalid cart data.');
+                return $this->_sendJson($response);
+            }
+
+            $cart->updateItems($cartData)->save();
+            Mage::log('Cart updated successfully.', Zend_Log::DEBUG, self::LOG_FILE);
+
+            $quote = $cart->getQuote();
+            $quote->getShippingAddress()->setCollectShippingRates(true);
+            $quote->collectTotals()->save();
+
+            Mage::getSingleton('checkout/session')->setCartWasUpdated(true);
+
+            $discount = $quote->getSubtotal() - $quote->getSubtotalWithDiscount();
+
+            $response['status'] = 'success';
+            $response['message'] = $this->__('Shopping cart updated.');
+            $response['grandTotal'] = Mage::helper('checkout')->formatPrice($quote->getGrandTotal());
+            $response['subtotal'] = Mage::helper('checkout')->formatPrice($quote->getSubtotal());
+            $response['discountAmount'] = $discount > 0.001 ? Mage::helper('checkout')->formatPrice(-$discount) : '';
+
+        } catch (Mage_Core_Exception $e) {
+            Mage::logException($e);
+            $response['message'] = $e->getMessage();
+        } catch (Exception $e) {
+            Mage::logException($e);
+            $response['message'] = $this->__('Cannot update shopping cart.');
+        }
+
+        $this->_sendJson($response);
+    }
+
+    public function applyCouponAction()
+    {
+        Mage::log('ViewcartController::applyCouponAction triggered.', Zend_Log::DEBUG, self::LOG_FILE);
+        $response = ['status' => 'error', 'message' => '', 'grandTotal' => '', 'subtotal' => '', 'discountAmount' => ''];
+
+        if (!$this->_validateFormKey()) {
+            $response['message'] = $this->__('Invalid form key.');
+            return $this->_sendJson($response);
+        }
+
+        $couponCode = trim((string)$this->getRequest()->getParam('coupon_code'));
+        if (!$this->getRequest()->isPost() || $couponCode === '') {
+            Mage::log('Invalid coupon submission.', Zend_Log::WARN, self::LOG_FILE);
+            $response['message'] = $this->__('Coupon code is empty or request invalid.');
+            return $this->_sendJson($response);
+        }
+
+        try {
+            $quote = $this->_getCart()->getQuote();
+            $currentCode = $quote->getCouponCode();
+
+            if ($currentCode === $couponCode) {
+                $response['status'] = 'success';
+                $response['message'] = sprintf($this->__('Coupon "%s" is already applied.'), Mage::helper('core')->escapeHtml($couponCode));
+            } else {
+                $quote->getShippingAddress()->setCollectShippingRates(true);
+                $quote->setCouponCode($couponCode)->collectTotals()->save();
+
+                if ($quote->getCouponCode() === $couponCode) {
+                    $response['status'] = 'success';
+                    $response['message'] = sprintf($this->__('Coupon "%s" applied successfully.'), Mage::helper('core')->escapeHtml($couponCode));
+                } else {
+                    $response['message'] = sprintf($this->__('Coupon "%s" is not valid.'), Mage::helper('core')->escapeHtml($couponCode));
+                }
+            }
+
+            $discount = $quote->getSubtotal() - $quote->getSubtotalWithDiscount();
+            $response['grandTotal'] = Mage::helper('checkout')->formatPrice($quote->getGrandTotal());
+            $response['subtotal'] = Mage::helper('checkout')->formatPrice($quote->getSubtotal());
+            $response['discountAmount'] = $discount > 0.001 ? Mage::helper('checkout')->formatPrice(-$discount) : '';
+
+        } catch (Mage_Core_Exception $e) {
+            Mage::logException($e);
+            $response['message'] = $e->getMessage();
+        } catch (Exception $e) {
+            Mage::logException($e);
+            $response['message'] = $this->__('Cannot apply the coupon code.');
+        }
+
+        $this->_sendJson($response);
+    }
+
+    public function removeCouponAction()
+    {
+        Mage::log('ViewcartController::removeCouponAction triggered.', Zend_Log::DEBUG, self::LOG_FILE);
+        $response = ['status' => 'error', 'message' => '', 'grandTotal' => '', 'subtotal' => '', 'discountAmount' => ''];
+
+        if (!$this->_validateFormKey()) {
+            $response['message'] = $this->__('Invalid form key.');
+            return $this->_sendJson($response);
+        }
+
+        try {
+            $quote = $this->_getCart()->getQuote();
+            $quote->setCouponCode('')
+                  ->collectTotals()
+                  ->save();
+
+            $discount = $quote->getSubtotal() - $quote->getSubtotalWithDiscount();
+
+            $response['status'] = 'success';
+            $response['message'] = $this->__('Coupon code removed.');
+            $response['grandTotal'] = Mage::helper('checkout')->formatPrice($quote->getGrandTotal());
+            $response['subtotal'] = Mage::helper('checkout')->formatPrice($quote->getSubtotal());
+            $response['discountAmount'] = $discount > 0.001 ? Mage::helper('checkout')->formatPrice(-$discount) : '';
+
+        } catch (Mage_Core_Exception $e) {
+            Mage::logException($e);
+            $response['message'] = $e->getMessage();
+        } catch (Exception $e) {
+            Mage::logException($e);
+            $response['message'] = $this->__('Cannot remove the coupon code.');
+        }
+
+        $this->_sendJson($response);
+    }
+
+    public function removeItemAction()
+    {
+        Mage::log('ViewcartController::removeItemAction triggered.', Zend_Log::DEBUG, self::LOG_FILE);
+        $response = ['status' => 'error', 'message' => '', 'grandTotal' => '', 'subtotal' => '', 'discountAmount' => ''];
+
+        if (!$this->_validateFormKey()) {
+            $response['message'] = $this->__('Invalid form key.');
+            Mage::getSingleton('checkout/session')->addError($response['message']);
+            return $this->_sendJson($response);
+        }
+
+        $id = (int) $this->getRequest()->getParam('id');
+
+        if ($id) {
+            try {
+                $cart = $this->_getCart();
+                $quote = $cart->getQuote();
+                $item = $quote->getItemById($id);
+
+                if ($item) {
+                    $cart->removeItem($id);
+                    $quote->getShippingAddress()->setCollectShippingRates(true);
+                    $quote->collectTotals();
+                    $cart->save();
+                    $quote->save();
+
+                    Mage::getSingleton('checkout/session')->setCartWasUpdated(true);
+
+                    $discount = $quote->getSubtotal() - $quote->getSubtotalWithDiscount();
+
+                    $response['status'] = 'success';
+                    $response['message'] = $this->__('Item removed from cart.');
+                    $response['grandTotal'] = Mage::helper('checkout')->formatPrice($quote->getGrandTotal());
+                    $response['subtotal'] = Mage::helper('checkout')->formatPrice($quote->getSubtotal());
+                    $response['discountAmount'] = $discount > 0.001 ? Mage::helper('checkout')->formatPrice(-$discount) : '';
+                } else {
+                    $response['message'] = $this->__('Item not found in cart.');
+                }
+
+            } catch (Mage_Core_Exception $e) {
+                Mage::logException($e);
+                $response['message'] = $e->getMessage();
+            } catch (Exception $e) {
+                Mage::logException($e);
+                $response['message'] = $this->__('Cannot remove item from cart.');
+            }
+        } else {
+            $response['message'] = $this->__('Invalid item ID.');
+        }
+
+        $this->_sendJson($response);
     }
 }
